@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Unified 6-Panel Publication Figure — TOPPLE + SICAI + DGSA
-===========================================================
+Unified 8-Panel Publication Figure — HIRA 5-Layer Framework
+=============================================================
 Row 1: TOPPLE (A: stabilizer ranking, B: stability landscape)
 Row 2: Disease correlations (C: SICAI mean r_b, D: DGSA non-additivity)
-Row 3: Cross-method (E: DGSA×TOPPLE, F: correlation matrix)
+Row 3: STRATA validation (E: stabilizer expr by condition, F: coupling heatmap)
+Row 4: Cross-method (G: DGSA×TOPPLE, H: correlation matrix)
 
 Author: Jeng-Wei Tjiu, M.D.
 Date: 2026-03
@@ -21,6 +22,7 @@ import seaborn as sns
 import warnings
 warnings.filterwarnings('ignore')
 
+from scipy.stats import mannwhitneyu
 from utils import (setup_stdout, setup_figure_style, save_figure, scatter_panel,
                    format_sig, check_prerequisites, COLORS, RESULTS_DIR, FIG_DIR)
 setup_stdout()
@@ -42,10 +44,13 @@ def create_unified_figure():
     ct_mean_ri = ri_matrix.mean(axis=0)
     ct_mean_ri.name = 'mean_RI'
 
-    # ── Figure layout: 3 rows × 2 cols ──
-    fig = plt.figure(figsize=(16, 18))
-    gs = gridspec.GridSpec(3, 2, height_ratios=[1, 1, 1],
-                           hspace=0.32, wspace=0.28)
+    # ── Load STRATA results ──
+    strata = pd.read_csv(RESULTS_DIR / "strata_sample_metrics.csv")
+
+    # ── Figure layout: 4 rows × 2 cols ──
+    fig = plt.figure(figsize=(16, 24))
+    gs = gridspec.GridSpec(4, 2, height_ratios=[1, 1, 1, 1],
+                           hspace=0.30, wspace=0.28)
 
     # ==================================================================
     # Panel A: TOPPLE Top 15 Stabilizer Bar Chart
@@ -130,22 +135,82 @@ def create_unified_figure():
         'D  DGSA: Genetic Non-Additivity vs Disease Pleiotropy')
 
     # ==================================================================
-    # Panel E: DGSA Non-additivity vs TOPPLE RI
+    # Panel E: STRATA — Stabilizer expression by condition
     # ==================================================================
     ax_e = fig.add_subplot(gs[2, 0])
+    cond_palette = {'Healthy': '#27ae60', 'Non-Lesional': '#3498db', 'Lesional': '#e74c3c'}
+    order = ['Healthy', 'Non-Lesional', 'Lesional']
+    avail_order = [c for c in order if c in strata['condition'].values]
+
+    sns.boxplot(data=strata, x='condition', y='mean_stabilizer_expr',
+                order=avail_order, palette=cond_palette,
+                width=0.5, fliersize=0, ax=ax_e)
+    sns.stripplot(data=strata, x='condition', y='mean_stabilizer_expr',
+                  order=avail_order, palette=cond_palette,
+                  size=7, alpha=0.7, jitter=0.15, ax=ax_e)
+    ax_e.set_xlabel('')
+    ax_e.set_ylabel('Mean Stabilizer TF Expression')
+    ax_e.set_title('E  STRATA: Stabilizer Expression in Psoriasis Tissue',
+                    fontweight='bold', loc='left', fontsize=9)
+
+    # Significance bracket
+    h_vals = strata[strata['condition'] == 'Healthy']['mean_stabilizer_expr']
+    l_vals = strata[strata['condition'] == 'Lesional']['mean_stabilizer_expr']
+    if len(h_vals) > 0 and len(l_vals) > 0:
+        _, p_hl = mannwhitneyu(h_vals, l_vals, alternative='two-sided')
+        ymax = strata['mean_stabilizer_expr'].max()
+        h_idx = avail_order.index('Healthy')
+        l_idx = avail_order.index('Lesional')
+        ax_e.plot([h_idx, h_idx, l_idx, l_idx],
+                  [ymax * 1.05, ymax * 1.08, ymax * 1.08, ymax * 1.05],
+                  color='black', linewidth=1)
+        ax_e.text((h_idx + l_idx) / 2, ymax * 1.09,
+                  f'P = {p_hl:.2e}', ha='center', fontsize=8)
+
+    # ==================================================================
+    # Panel F: STRATA — Compositional coupling by condition
+    # ==================================================================
+    ax_f = fig.add_subplot(gs[2, 1])
+    sns.boxplot(data=strata, x='condition', y='coupling_strength',
+                order=avail_order, palette=cond_palette,
+                width=0.5, fliersize=0, ax=ax_f)
+    sns.stripplot(data=strata, x='condition', y='coupling_strength',
+                  order=avail_order, palette=cond_palette,
+                  size=7, alpha=0.7, jitter=0.15, ax=ax_f)
+    ax_f.set_xlabel('')
+    ax_f.set_ylabel('Mean |Coupling| (25 Cell Types)')
+    ax_f.set_title('F  STRATA: Compositional Coupling in Tissue',
+                    fontweight='bold', loc='left', fontsize=9)
+
+    # Significance bracket
+    h_coup = strata[strata['condition'] == 'Healthy']['coupling_strength']
+    l_coup = strata[strata['condition'] == 'Lesional']['coupling_strength']
+    if len(h_coup) > 0 and len(l_coup) > 0:
+        _, p_coup = mannwhitneyu(h_coup, l_coup, alternative='two-sided')
+        ymax_f = strata['coupling_strength'].max()
+        ax_f.plot([h_idx, h_idx, l_idx, l_idx],
+                  [ymax_f * 1.02, ymax_f * 1.04, ymax_f * 1.04, ymax_f * 1.02],
+                  color='black', linewidth=1)
+        ax_f.text((h_idx + l_idx) / 2, ymax_f * 1.045,
+                  f'P = {p_coup:.2e}', ha='center', fontsize=8)
+
+    # ==================================================================
+    # Panel G: DGSA Non-additivity vs TOPPLE RI
+    # ==================================================================
+    ax_g = fig.add_subplot(gs[3, 0])
     dgsa_topple = dgsa_ct.join(ct_mean_ri, how='inner')
     scatter_panel(
-        ax_e,
+        ax_g,
         dgsa_topple['mean_non_additivity'], dgsa_topple['mean_RI'],
         'Mean Non-Additivity Index',
         'Mean TOPPLE RI',
-        'E  Cross-Method: DGSA × TOPPLE',
+        'G  Cross-Method: DGSA × TOPPLE',
         label_top=3, label_bot=3)
 
     # ==================================================================
-    # Panel F: Summary Correlation Matrix
+    # Panel H: Summary Correlation Matrix
     # ==================================================================
-    ax_f = fig.add_subplot(gs[2, 1])
+    ax_h = fig.add_subplot(gs[3, 1])
 
     # Build a common cell-type index across all 4 metrics
     # TOPPLE RI per cell type
@@ -189,24 +254,24 @@ def create_unified_figure():
                 annot=annot, fmt='', annot_kws={'fontsize': 9, 'fontweight': 'bold'},
                 cbar_kws={'label': 'Spearman $\\rho$', 'shrink': 0.7},
                 linewidths=1.5, linecolor='white',
-                ax=ax_f)
-    ax_f.set_title('F  Cross-Method Correlation Matrix',
+                ax=ax_h)
+    ax_h.set_title('H  Cross-Method Correlation Matrix',
                     fontweight='bold', loc='left')
-    ax_f.set_xticklabels(labels, fontsize=8, rotation=0, ha='center')
-    ax_f.set_yticklabels(labels, fontsize=8, rotation=0)
+    ax_h.set_xticklabels(labels, fontsize=8, rotation=0, ha='center')
+    ax_h.set_yticklabels(labels, fontsize=8, rotation=0)
 
     # Add n annotation
-    ax_f.text(0.5, -0.08, f'n = {len(all_metrics)} cell types (common across all methods)',
-              transform=ax_f.transAxes, fontsize=7, ha='center', color='#7f8c8d')
+    ax_h.text(0.5, -0.08, f'n = {len(all_metrics)} cell types (common across all methods)',
+              transform=ax_h.transAxes, fontsize=7, ha='center', color='#7f8c8d')
 
     # ── Suptitle ──
     fig.suptitle(
-        'Multi-Scale Architectural Analysis of the Human Immune System\n'
-        'TOPPLE + SICAI + DGSA on CIMA Atlas (Yin et al., Science 2026)',
+        'HIRA: Hierarchical Immune Regulatory Architecture (5 Layers)\n'
+        'CIMA Atlas + GSE202011 Psoriasis Visium Validation',
         fontsize=14, fontweight='bold', y=0.995)
 
-    save_figure(fig, FIG_DIR, 'fig_unified_3method')
-    print("Unified figure saved: fig_unified_3method.png/pdf")
+    save_figure(fig, FIG_DIR, 'fig_unified_5layer')
+    print("Unified figure saved: fig_unified_5layer.png/pdf")
 
     return all_metrics, rho_mat, p_mat
 
@@ -309,7 +374,7 @@ coupling strength, single-cell transcriptomics, immune atlas, CIMA, eQTL geometr
 
 def main():
     print("=" * 70)
-    print("Unified 6-Panel Figure: TOPPLE + SICAI + DGSA")
+    print("Unified 8-Panel Figure: HIRA 5-Layer Framework")
     print("=" * 70)
 
     required = [
@@ -318,6 +383,7 @@ def main():
         "sicai_alt_metrics_disease_merged.csv",
         "dgsa_celltype_summary.csv",
         "dgsa_gene_scores.csv",
+        "strata_sample_metrics.csv",
     ]
     check_prerequisites(RESULTS_DIR, required)
 
