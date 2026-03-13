@@ -15,44 +15,24 @@ Author: Jeng-Wei Tjiu, M.D.
 Date: 2026-03
 """
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent / "scripts"))
+
 import pandas as pd
 import numpy as np
 from scipy.stats import spearmanr
 from scipy.cluster.hierarchy import linkage, leaves_list
+from scipy.spatial.distance import squareform
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import seaborn as sns
-from pathlib import Path
-import sys
-import io
 import warnings
 warnings.filterwarnings('ignore')
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
-RESULTS_DIR = Path("results")
-FIG_DIR = Path("figures")
-
-COLORS = {
-    'stabilizer': '#c0392b',
-    'destabilizer': '#2980b9',
-    'neutral': '#95a5a6',
-    'accent': '#27ae60',
-}
-
-
-def setup_figure_style():
-    plt.rcParams.update({
-        'font.family': 'Arial',
-        'font.size': 8,
-        'axes.titlesize': 10,
-        'axes.labelsize': 9,
-        'xtick.labelsize': 6.5,
-        'ytick.labelsize': 6.5,
-        'legend.fontsize': 7,
-        'figure.dpi': 300,
-        'savefig.dpi': 300,
-        'savefig.bbox': 'tight',
-    })
+from utils import (setup_stdout, setup_figure_style, save_figure, scatter_panel,
+                   check_prerequisites, COLORS, RESULTS_DIR, FIG_DIR)
+setup_stdout()
 
 
 def create_combined_figure():
@@ -161,7 +141,6 @@ def create_combined_figure():
     dist = np.clip(1 - rb_clean.values, 0, 2)
     np.fill_diagonal(dist, 0)
     # Use condensed form
-    from scipy.spatial.distance import squareform
     dist_condensed = squareform(dist, checks=False)
     Z = linkage(dist_condensed, method='ward')
     order = leaves_list(Z)
@@ -187,44 +166,11 @@ def create_combined_figure():
 
     x = alt_merged['mean_rb']
     y = alt_merged['n_disease_associations']
-    rho, p_val = spearmanr(x, y)
-
-    ax_d.scatter(x, y, s=45, alpha=0.7, c='#2c3e50', edgecolors='white',
-                linewidth=0.5, zorder=3)
-
-    # Regression line
-    z = np.polyfit(x, y, 1)
-    p_fit = np.poly1d(z)
-    x_line = np.linspace(x.min(), x.max(), 100)
-    ax_d.plot(x_line, p_fit(x_line), '--', color='#e74c3c', linewidth=1.5)
-
-    # Label top 5 by disease count
-    top5 = alt_merged.nlargest(5, 'n_disease_associations')
-    for idx, row in top5.iterrows():
-        ax_d.annotate(idx, (row['mean_rb'], row['n_disease_associations']),
-                     fontsize=5.5, ha='left', va='bottom',
-                     xytext=(4, 4), textcoords='offset points')
-
-    # Label bottom 3 (low mean_rb, low disease)
-    bot3 = alt_merged.nsmallest(3, 'mean_rb')
-    for idx, row in bot3.iterrows():
-        ax_d.annotate(idx, (row['mean_rb'], row['n_disease_associations']),
-                     fontsize=5.5, ha='right', va='top',
-                     xytext=(-4, -4), textcoords='offset points',
-                     color='#7f8c8d')
-
-    stats_text = (f'Spearman $\\rho$ = {rho:.3f}\n'
-                  f'P = {p_val:.2e}\n'
-                  f'n = {len(alt_merged)} cell types')
-    ax_d.text(0.05, 0.95, stats_text, transform=ax_d.transAxes,
-             fontsize=8, va='top',
-             bbox=dict(boxstyle='round,pad=0.4', facecolor='wheat', alpha=0.8))
-
-    ax_d.set_xlabel('Mean $r_b$ (Coupling Strength)')
-    ax_d.set_ylabel('Number of Disease Associations (SMR)')
-    ax_d.set_title('D  Coupling Strength Predicts Disease Pleiotropy',
-                    fontweight='bold', loc='left')
-    ax_d.grid(True, alpha=0.2)
+    scatter_panel(ax_d, x, y,
+                  xlabel='Mean $r_b$ (Coupling Strength)',
+                  ylabel='Number of Disease Associations (SMR)',
+                  title='D  Coupling Strength Predicts Disease Pleiotropy',
+                  label_top=5, label_bot=3)
 
     # ── Suptitle ──
     fig.suptitle(
@@ -233,9 +179,7 @@ def create_combined_figure():
         fontsize=13, fontweight='bold', y=1.02
     )
 
-    for ext in ['png', 'pdf']:
-        fig.savefig(FIG_DIR / f'fig_combined_proof_of_concept.{ext}')
-    plt.close()
+    save_figure(fig, FIG_DIR, 'fig_combined_proof_of_concept')
     print("✓ Combined figure saved: fig_combined_proof_of_concept.png/pdf")
 
 
@@ -339,11 +283,7 @@ def main():
         "sicai_rb_matrix.csv",
         "sicai_alt_metrics_disease_merged.csv",
     ]
-    for f in required:
-        if not (RESULTS_DIR / f).exists():
-            print(f"  Missing: {RESULTS_DIR / f}")
-            print("  Run 01_topple_cima.py and 02_sicai_cima.py first")
-            return
+    check_prerequisites(RESULTS_DIR, required)
 
     create_combined_figure()
     write_genome_biology_framing()

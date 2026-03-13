@@ -17,37 +17,17 @@ import numpy as np
 from scipy.stats import spearmanr, mannwhitneyu
 import matplotlib.pyplot as plt
 import seaborn as sns
-from pathlib import Path
 import re
-import sys
-import io
 import warnings
 warnings.filterwarnings('ignore')
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
-DATA_DIR = Path("data")
-FIG_DIR = Path("figures")
-RESULTS_DIR = Path("results")
-FIG_DIR.mkdir(exist_ok=True)
-RESULTS_DIR.mkdir(exist_ok=True)
+from utils import (setup_stdout, ensure_dirs, setup_figure_style, save_figure,
+                   find_file, scatter_panel, format_sig,
+                   COLORS, DATA_DIR, FIG_DIR, RESULTS_DIR)
+setup_stdout()
+ensure_dirs()
 
-S5_FILE = DATA_DIR / "science.adt3130_table_s5.xlsx"
-
-
-def setup_figure_style():
-    plt.rcParams.update({
-        'font.family': 'Arial',
-        'font.size': 8,
-        'axes.titlesize': 10,
-        'axes.labelsize': 9,
-        'xtick.labelsize': 7,
-        'ytick.labelsize': 7,
-        'legend.fontsize': 7,
-        'figure.dpi': 300,
-        'savefig.dpi': 300,
-        'savefig.bbox': 'tight',
-        'savefig.pad_inches': 0.1,
-    })
+S5_FILE = find_file(DATA_DIR, table_key='s5')
 
 
 def strip_gene_count(name: str) -> str:
@@ -251,23 +231,25 @@ def plot_figures(sex_merged, age_merged, sens, core_results, cross_results, scor
     setup_figure_style()
 
     role_order = ['stabilizer', 'neutral', 'destabilizer']
-    palette = {'stabilizer': '#c0392b', 'neutral': '#95a5a6', 'destabilizer': '#2980b9'}
+    palette = {
+        'stabilizer': COLORS['stabilizer'],
+        'neutral': COLORS['neutral'],
+        'destabilizer': COLORS['destabilizer'],
+    }
 
     # ── Fig 4a: Violin — |log2FC| by role ──
     fig, ax = plt.subplots(figsize=(7, 5))
     sns.violinplot(data=sex_merged, x='role', y='abs_log2FC', order=role_order,
                    palette=palette, inner='box', cut=0, ax=ax)
     r = core_results['Sex (|log2FC|)']
-    sig = '***' if r['p'] < 0.001 else '**' if r['p'] < 0.01 else '*' if r['p'] < 0.05 else 'n.s.'
+    sig = format_sig(r['p'])
     ax.set_title(f'A  Sex Perturbation Resistance by Stability Role\n'
                  f'Mann-Whitney U (stab < dest): P = {r["p"]:.2e} {sig}',
                  fontweight='bold', loc='left', fontsize=9)
     ax.set_xlabel('TOPPLE Stability Role')
     ax.set_ylabel('|log2 Fold Change| (sex difference)')
     plt.tight_layout()
-    for ext in ['png', 'pdf']:
-        fig.savefig(FIG_DIR / f'fig4a_sex_violin.{ext}')
-    plt.close()
+    save_figure(fig, FIG_DIR, 'fig4a_sex_violin')
     print("  fig4a saved")
 
     # ── Fig 4b: Violin — |age_corr| by role ──
@@ -275,16 +257,14 @@ def plot_figures(sex_merged, age_merged, sens, core_results, cross_results, scor
     sns.violinplot(data=age_merged, x='role', y='abs_age_corr', order=role_order,
                    palette=palette, inner='box', cut=0, ax=ax)
     r = core_results['Age (|corr|)']
-    sig = '***' if r['p'] < 0.001 else '**' if r['p'] < 0.01 else '*' if r['p'] < 0.05 else 'n.s.'
+    sig = format_sig(r['p'])
     ax.set_title(f'B  Age Perturbation Resistance by Stability Role\n'
                  f'Mann-Whitney U (stab < dest): P = {r["p"]:.2e} {sig}',
                  fontweight='bold', loc='left', fontsize=9)
     ax.set_xlabel('TOPPLE Stability Role')
     ax.set_ylabel('|Age Correlation| (Spearman)')
     plt.tight_layout()
-    for ext in ['png', 'pdf']:
-        fig.savefig(FIG_DIR / f'fig4b_age_violin.{ext}')
-    plt.close()
+    save_figure(fig, FIG_DIR, 'fig4b_age_violin')
     print("  fig4b saved")
 
     # ── Fig 4c: Scatter — perturbation sensitivity vs disease ──
@@ -292,35 +272,17 @@ def plot_figures(sex_merged, age_merged, sens, core_results, cross_results, scor
         info = cross_results['disease']
         merged = info['merged']
         fig, ax = plt.subplots(figsize=(8, 6))
-        x = merged['perturbation_sensitivity']
-        y = merged['n_disease_associations']
-        ax.scatter(x, y, s=40, alpha=0.7, c='#2c3e50', edgecolors='white',
-                   linewidth=0.5, zorder=3)
-        z = np.polyfit(x, y, 1)
-        x_line = np.linspace(x.min(), x.max(), 100)
-        ax.plot(x_line, np.poly1d(z)(x_line), '--', color='#e74c3c', linewidth=1.5)
-
-        top5 = merged.nlargest(5, 'n_disease_associations')
-        for idx, row in top5.iterrows():
-            ax.annotate(idx, (row['perturbation_sensitivity'],
-                              row['n_disease_associations']),
-                        fontsize=5.5, ha='left', va='bottom',
-                        xytext=(4, 4), textcoords='offset points')
-
-        sig = '***' if info['p'] < 0.001 else '**' if info['p'] < 0.01 else '*' if info['p'] < 0.05 else 'n.s.'
-        stats = (f'$\\rho$ = {info["rho"]:.3f} {sig}\n'
-                 f'P = {info["p"]:.2e}\nn = {info["n"]}')
-        ax.text(0.05, 0.95, stats, transform=ax.transAxes, fontsize=8, va='top',
-                bbox=dict(boxstyle='round,pad=0.4', facecolor='wheat', alpha=0.8))
-        ax.set_xlabel('Perturbation Sensitivity (|log2FC| + |age_corr|)')
-        ax.set_ylabel('Disease Associations (SMR)')
-        ax.set_title('C  Perturbation Sensitivity Predicts Disease Pleiotropy',
-                      fontweight='bold', loc='left')
-        ax.grid(True, alpha=0.2)
+        scatter_panel(
+            ax,
+            merged['perturbation_sensitivity'],
+            merged['n_disease_associations'],
+            xlabel='Perturbation Sensitivity (|log2FC| + |age_corr|)',
+            ylabel='Disease Associations (SMR)',
+            title='C  Perturbation Sensitivity Predicts Disease Pleiotropy',
+            label_top=5,
+        )
         plt.tight_layout()
-        for ext in ['png', 'pdf']:
-            fig.savefig(FIG_DIR / f'fig4c_sensitivity_vs_disease.{ext}')
-        plt.close()
+        save_figure(fig, FIG_DIR, 'fig4c_sensitivity_vs_disease')
         print("  fig4c saved")
 
     # ── Fig 4d: Heatmap — top 10 stabilizers × perturbation across cell types ──
@@ -356,9 +318,7 @@ def plot_figures(sex_merged, age_merged, sens, core_results, cross_results, scor
     plt.suptitle('D  Perturbation Response of Top 10 TOPPLE Stabilizers',
                  fontweight='bold', y=1.02)
     plt.tight_layout()
-    for ext in ['png', 'pdf']:
-        fig.savefig(FIG_DIR / f'fig4d_stabilizer_perturbation_heatmap.{ext}')
-    plt.close()
+    save_figure(fig, FIG_DIR, 'fig4d_stabilizer_perturbation_heatmap')
     print("  fig4d saved")
 
 

@@ -17,52 +17,38 @@ Author: Jeng-Wei Tjiu, M.D.
 Date: 2026-03
 """
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent / "scripts"))
+
 import pandas as pd
 import numpy as np
 from scipy.stats import spearmanr, pearsonr, entropy
 from scipy.spatial.distance import squareform, pdist
+from scipy.cluster.hierarchy import linkage, leaves_list
 import matplotlib.pyplot as plt
-import matplotlib as mpl
 import seaborn as sns
-from pathlib import Path
 import warnings
-import sys
-import io
 warnings.filterwarnings('ignore')
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
-# ── Configuration ──────────────────────────────────────────────────────
-DATA_DIR = Path("data")
-FIG_DIR = Path("figures")
-RESULTS_DIR = Path("results")
-FIG_DIR.mkdir(exist_ok=True)
-RESULTS_DIR.mkdir(exist_ok=True)
+from utils import (setup_stdout, ensure_dirs, setup_figure_style, save_figure,
+                   find_file, detect_column, scatter_panel, format_sig,
+                   COLORS, DATA_DIR, FIG_DIR, RESULTS_DIR)
+setup_stdout()
+ensure_dirs()
 
 # ── Step 1: Load Table S8 (eQTL sharing) ──────────────────────────────
 def load_table_s8(data_dir: Path) -> pd.DataFrame:
     """Load CIMA Table S8: 4,692 pairwise eQTL sharing (π₁, r_b)."""
-    candidates = [
-        "science.adt3130_table_s8.xlsx",
-        "science_adt3130_table_s8.xlsx",
-        "table_s8.xlsx",
-        "Table_S8.xlsx",
-        "science_adt3130_table_s8.csv",
-        "table_s8.csv",
-    ]
-    
-    for fname in candidates:
-        fpath = data_dir / fname
-        if fpath.exists():
-            print(f"✓ Loading Table S8: {fpath}")
-            if fpath.suffix == '.csv':
-                df = pd.read_csv(fpath)
-            else:
-                df = pd.read_excel(fpath, sheet_name=0)
-            print(f"  Shape: {df.shape}")
-            print(f"  Columns: {list(df.columns)}")
-            return df
-    
-    raise FileNotFoundError(f"Table S8 not found in {data_dir}/")
+    fpath = find_file(data_dir, table_key='s8')
+    print(f"✓ Loading Table S8: {fpath}")
+    if fpath.suffix == '.csv':
+        df = pd.read_csv(fpath)
+    else:
+        df = pd.read_excel(fpath, sheet_name=0)
+    print(f"  Shape: {df.shape}")
+    print(f"  Columns: {list(df.columns)}")
+    return df
 
 
 def build_rb_matrix(df: pd.DataFrame) -> pd.DataFrame:
@@ -71,22 +57,11 @@ def build_rb_matrix(df: pd.DataFrame) -> pd.DataFrame:
     Expected columns: cell_type_1, cell_type_2, r_b (or rb, r.b)
     4,692 pairs = 69 × 68 / 2 = 2,346 × 2 (if both directions) or C(69,2) = 2,346
     """
-    cols = [c.lower().strip() for c in df.columns]
-    col_map = {c: orig for c, orig in zip(cols, df.columns)}
-    
-    # Auto-detect columns
-    ct1_col = ct2_col = rb_col = pi1_col = None
-    
-    for c in cols:
-        if any(x in c for x in ['cell_type_1', 'celltype_1', 'ct1', 'reference_cell', 'reference cell']):
-            ct1_col = col_map[c]
-        elif any(x in c for x in ['cell_type_2', 'celltype_2', 'ct2', 'query_cell', 'query cell']):
-            ct2_col = col_map[c]
-        elif c in ['r_b', 'rb', 'r.b', 'r_b_mean']:
-            rb_col = col_map[c]
-        elif c in ['pi1', 'π1', 'pi_1', 'pi1_mean']:
-            pi1_col = col_map[c]
-    
+    ct1_col = detect_column(df, ['reference_cell_type', 'cell_type_1', 'celltype_1', 'ct1'])
+    ct2_col = detect_column(df, ['query_celltype', 'cell_type_2', 'celltype_2', 'ct2'])
+    rb_col = detect_column(df, ['rb', 'r_b', 'r.b', 'r_b_mean'])
+    pi1_col = detect_column(df, ['pi1', 'pi_1', 'pi1_mean'])
+
     if any(x is None for x in [ct1_col, ct2_col, rb_col]):
         print("\n⚠ Column detection incomplete. Columns available:")
         for i, c in enumerate(df.columns):
@@ -197,28 +172,15 @@ def compute_coupling_complexity(rb_matrix: pd.DataFrame) -> pd.DataFrame:
 # ── Step 3: Load Table S15 (Disease associations) ─────────────────────
 def load_table_s15(data_dir: Path) -> pd.DataFrame:
     """Load CIMA Table S15: 2,085 SMR pleiotropic associations."""
-    candidates = [
-        "science.adt3130_table_s15.xlsx",
-        "science_adt3130_table_s15.xlsx",
-        "table_s15.xlsx",
-        "Table_S15.xlsx",
-        "science_adt3130_table_s15.csv",
-        "table_s15.csv",
-    ]
-    
-    for fname in candidates:
-        fpath = data_dir / fname
-        if fpath.exists():
-            print(f"\n✓ Loading Table S15: {fpath}")
-            if fpath.suffix == '.csv':
-                df = pd.read_csv(fpath)
-            else:
-                df = pd.read_excel(fpath, sheet_name=0)
-            print(f"  Shape: {df.shape}")
-            print(f"  Columns: {list(df.columns)}")
-            return df
-    
-    raise FileNotFoundError(f"Table S15 not found in {data_dir}/")
+    fpath = find_file(data_dir, table_key='s15')
+    print(f"\n✓ Loading Table S15: {fpath}")
+    if fpath.suffix == '.csv':
+        df = pd.read_csv(fpath)
+    else:
+        df = pd.read_excel(fpath, sheet_name=0)
+    print(f"  Shape: {df.shape}")
+    print(f"  Columns: {list(df.columns)}")
+    return df
 
 
 def count_disease_associations(s15_df: pd.DataFrame) -> pd.Series:
@@ -226,23 +188,8 @@ def count_disease_associations(s15_df: pd.DataFrame) -> pd.Series:
     
     Returns Series: cell_type → number of unique trait associations
     """
-    cols = [c.lower().strip() for c in s15_df.columns]
-    col_map = {c: orig for c, orig in zip(cols, s15_df.columns)}
-    
-    # Find cell type column
-    ct_col = None
-    for c in cols:
-        # Match 'celltype', 'cell_type', 'cell_type_l4', etc. but not partial matches like 'query_celltype'
-        if c in ['celltype', 'cell_type', 'cell_type_l4', 'cell type', 'l4']:
-            ct_col = col_map[c]
-            break
-
-    # Find trait column
-    trait_col = None
-    for c in cols:
-        if c in ['trait', 'disease', 'phenotype', 'gwas_trait', 'trait_name']:
-            trait_col = col_map[c]
-            break
+    ct_col = detect_column(s15_df, ['celltype', 'cell_type', 'cell_type_l4', 'l4'])
+    trait_col = detect_column(s15_df, ['trait', 'disease', 'phenotype', 'gwas_trait'])
     
     if ct_col is None:
         print("  ⚠ Auto-detect failed, using positional fallback")
@@ -317,29 +264,13 @@ def test_complexity_disease_correlation(cc_df, disease_counts):
 
 
 # ── Step 5: Publication Figures ────────────────────────────────────────
-def setup_figure_style():
-    plt.rcParams.update({
-        'font.family': 'Arial',
-        'font.size': 8,
-        'axes.titlesize': 10,
-        'axes.labelsize': 9,
-        'xtick.labelsize': 7,
-        'ytick.labelsize': 7,
-        'legend.fontsize': 7,
-        'figure.dpi': 300,
-        'savefig.dpi': 300,
-        'savefig.bbox': 'tight',
-    })
-
-
 def plot_rb_heatmap(rb_matrix, fig_dir):
     """Figure 2a: r_b correlation heatmap across 69 cell types."""
     setup_figure_style()
-    
+
     fig, ax = plt.subplots(figsize=(12, 10))
-    
+
     # Cluster for visual grouping
-    from scipy.cluster.hierarchy import linkage, dendrogram, leaves_list
     Z = linkage(1 - rb_matrix.values, method='ward')
     order = leaves_list(Z)
     rb_ordered = rb_matrix.iloc[order, order]
@@ -356,9 +287,7 @@ def plot_rb_heatmap(rb_matrix, fig_dir):
                  '69 cell types, hierarchically clustered', fontweight='bold')
     
     plt.tight_layout()
-    for ext in ['png', 'pdf']:
-        fig.savefig(fig_dir / f'fig2a_rb_heatmap.{ext}')
-    plt.close()
+    save_figure(fig, fig_dir, 'fig2a_rb_heatmap')
     print(f"✓ Figure 2a saved")
 
 
@@ -402,9 +331,7 @@ def plot_complexity_vs_disease(merged, rho, p_val, fig_dir):
     ax.grid(True, alpha=0.3)
     
     plt.tight_layout()
-    for ext in ['png', 'pdf']:
-        fig.savefig(fig_dir / f'fig2b_complexity_vs_disease.{ext}')
-    plt.close()
+    save_figure(fig, fig_dir, 'fig2b_complexity_vs_disease')
     print(f"✓ Figure 2b saved")
 
 
@@ -440,9 +367,7 @@ def plot_complexity_distribution(cc_df, fig_dir):
     
     plt.suptitle('SICAI Coupling Architecture — CIMA Atlas', fontweight='bold', y=1.02)
     plt.tight_layout()
-    for ext in ['png', 'pdf']:
-        fig.savefig(fig_dir / f'fig2c_complexity_distribution.{ext}')
-    plt.close()
+    save_figure(fig, fig_dir, 'fig2c_complexity_distribution')
     print(f"✓ Figure 2c saved")
 
 
@@ -539,42 +464,15 @@ def compare_metrics_vs_disease(alt_df: pd.DataFrame, disease_counts: pd.Series,
     # Generate scatter for best metric
     setup_figure_style()
     fig, ax = plt.subplots(figsize=(8, 6))
-    x = merged[best_metric]
-    y = merged['n_disease_associations']
-
-    ax.scatter(x, y, s=40, alpha=0.7, edgecolors='white', linewidth=0.5,
-              c='#2c3e50', zorder=3)
-
-    # Regression line
-    z = np.polyfit(x, y, 1)
-    poly = np.poly1d(z)
-    x_line = np.linspace(x.min(), x.max(), 100)
-    ax.plot(x_line, poly(x_line), '--', color='#e74c3c', linewidth=1.5, alpha=0.8)
-
-    # Label top 5 by disease count
-    top5 = merged.nlargest(5, 'n_disease_associations')
-    for idx, row in top5.iterrows():
-        ax.annotate(idx, (row[best_metric], row['n_disease_associations']),
-                   fontsize=6, ha='left', va='bottom',
-                   xytext=(5, 5), textcoords='offset points')
-
-    stats_text = (f'Spearman rho = {best_rho:.3f}\n'
-                  f'P = {best_p:.2e}\n'
-                  f'n = {n} cell types')
-    ax.text(0.05, 0.95, stats_text, transform=ax.transAxes,
-            fontsize=8, va='top', ha='left',
-            bbox=dict(boxstyle='round,pad=0.5', facecolor='wheat', alpha=0.8))
-
-    ax.set_xlabel(metric_labels[best_metric])
-    ax.set_ylabel('Number of Disease Associations (SMR)')
-    ax.set_title(f'{metric_labels[best_metric]} vs Disease Pleiotropy\n'
-                 f'SICAI Alternative Metric — CIMA Atlas', fontweight='bold')
-    ax.grid(True, alpha=0.3)
-
+    scatter_panel(ax,
+                  merged[best_metric], merged['n_disease_associations'],
+                  xlabel=metric_labels[best_metric],
+                  ylabel='Number of Disease Associations (SMR)',
+                  title=f'{metric_labels[best_metric]} vs Disease Pleiotropy\n'
+                        f'SICAI Alternative Metric — CIMA Atlas',
+                  label_top=5)
     plt.tight_layout()
-    for ext in ['png', 'pdf']:
-        fig.savefig(fig_dir / f'fig2d_best_alt_metric_vs_disease.{ext}')
-    plt.close()
+    save_figure(fig, fig_dir, 'fig2d_best_alt_metric_vs_disease')
     print(f"  Figure 2d saved: fig2d_best_alt_metric_vs_disease.png/pdf")
 
     return merged, best_metric, best_rho, best_p

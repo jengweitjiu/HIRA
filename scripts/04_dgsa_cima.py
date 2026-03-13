@@ -21,47 +21,20 @@ from scipy.stats import spearmanr
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
-import sys
-import io
 import warnings
 warnings.filterwarnings('ignore')
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
-# ── Configuration ──────────────────────────────────────────────────────
-DATA_DIR = Path("data")
-FIG_DIR = Path("figures")
-RESULTS_DIR = Path("results")
-FIG_DIR.mkdir(exist_ok=True)
-RESULTS_DIR.mkdir(exist_ok=True)
-
-COLORS = {
-    'primary': '#2c3e50',
-    'accent': '#e74c3c',
-    'secondary': '#3498db',
-    'tertiary': '#27ae60',
-}
-
-
-def setup_figure_style():
-    plt.rcParams.update({
-        'font.family': 'Arial',
-        'font.size': 8,
-        'axes.titlesize': 10,
-        'axes.labelsize': 9,
-        'xtick.labelsize': 7,
-        'ytick.labelsize': 7,
-        'legend.fontsize': 7,
-        'figure.dpi': 300,
-        'savefig.dpi': 300,
-        'savefig.bbox': 'tight',
-        'savefig.pad_inches': 0.1,
-    })
+from utils import (setup_stdout, ensure_dirs, setup_figure_style, save_figure,
+                   find_file, scatter_panel, gini_coefficient, format_sig,
+                   COLORS, DATA_DIR, FIG_DIR, RESULTS_DIR)
+setup_stdout()
+ensure_dirs()
 
 
 # ── Step 1: Load and filter eQTLs ─────────────────────────────────────
 def load_eqtls(data_dir: Path) -> pd.DataFrame:
     """Load Table S6, filter to cis-eQTLs, keep only needed columns."""
-    fpath = data_dir / "CIMA_Table_S6.csv"
+    fpath = find_file(data_dir, table_key='s6')
     print(f"Loading {fpath} (filtering to cis-eQTL only)...")
 
     # Read only needed columns to save memory
@@ -110,17 +83,6 @@ def build_beta_matrix(eqtl: pd.DataFrame, min_celltypes: int = 3) -> pd.DataFram
 
 
 # ── Step 3: Geometric decomposition per gene ──────────────────────────
-def gini_coefficient(x):
-    """Gini coefficient of array x (0 = perfect equality, 1 = max inequality)."""
-    x = np.abs(x)
-    x = np.sort(x)
-    n = len(x)
-    if n == 0 or x.sum() == 0:
-        return 0.0
-    index = np.arange(1, n + 1)
-    return (2 * np.sum(index * x) / (n * np.sum(x))) - (n + 1) / n
-
-
 def geometric_decomposition(beta_matrix: pd.DataFrame) -> pd.DataFrame:
     """Decompose each gene's beta vector into geometric components.
 
@@ -308,9 +270,9 @@ def plot_figures(gene_scores, ct_summary, beta_matrix, correlations, fig_dir):
     fig, ax = plt.subplots(figsize=(7, 5))
     vals = gene_scores['non_additivity']
     ax.hist(vals, bins=60, color=COLORS['secondary'], edgecolor='white', alpha=0.85)
-    ax.axvline(vals.median(), color=COLORS['accent'], linestyle='--', linewidth=1.5,
+    ax.axvline(vals.median(), color=COLORS['regression'], linestyle='--', linewidth=1.5,
                label=f'Median = {vals.median():.3f}')
-    ax.axvline(vals.mean(), color=COLORS['tertiary'], linestyle=':', linewidth=1.5,
+    ax.axvline(vals.mean(), color=COLORS['accent'], linestyle=':', linewidth=1.5,
                label=f'Mean = {vals.mean():.3f}')
     ax.set_xlabel('Non-Additivity Index (1 - uniformity)')
     ax.set_ylabel('Number of Genes')
@@ -319,9 +281,7 @@ def plot_figures(gene_scores, ct_summary, beta_matrix, correlations, fig_dir):
                  fontweight='bold')
     ax.legend()
     plt.tight_layout()
-    for ext in ['png', 'pdf']:
-        fig.savefig(fig_dir / f'fig3a_non_additivity_distribution.{ext}')
-    plt.close()
+    save_figure(fig, fig_dir, 'fig3a_non_additivity_distribution')
     print("  fig3a saved")
 
     # ── Fig 3b: Non-additivity vs disease associations ──
@@ -329,39 +289,17 @@ def plot_figures(gene_scores, ct_summary, beta_matrix, correlations, fig_dir):
         info = correlations['disease']
         merged = info['merged']
         fig, ax = plt.subplots(figsize=(8, 6))
-        x = merged['mean_non_additivity']
-        y = merged['n_disease_associations']
-
-        ax.scatter(x, y, s=45, alpha=0.7, c=COLORS['primary'],
-                   edgecolors='white', linewidth=0.5, zorder=3)
-
-        # Regression line
-        z = np.polyfit(x, y, 1)
-        p_fit = np.poly1d(z)
-        x_line = np.linspace(x.min(), x.max(), 100)
-        ax.plot(x_line, p_fit(x_line), '--', color=COLORS['accent'], linewidth=1.5)
-
-        # Label top 5
-        top5 = merged.nlargest(5, 'n_disease_associations')
-        for idx, row in top5.iterrows():
-            ax.annotate(idx, (row['mean_non_additivity'], row['n_disease_associations']),
-                        fontsize=5.5, ha='left', va='bottom',
-                        xytext=(4, 4), textcoords='offset points')
-
-        stats = (f'Spearman $\\rho$ = {info["rho"]:.3f}\n'
-                 f'P = {info["p"]:.2e}\nn = {info["n"]} cell types')
-        ax.text(0.05, 0.95, stats, transform=ax.transAxes, fontsize=8, va='top',
-                bbox=dict(boxstyle='round,pad=0.4', facecolor='wheat', alpha=0.8))
-
-        ax.set_xlabel('Mean Non-Additivity Index per Cell Type')
-        ax.set_ylabel('Number of Disease Associations (SMR)')
-        ax.set_title('DGSA: Genetic Non-Additivity Predicts Disease Pleiotropy',
-                      fontweight='bold')
-        ax.grid(True, alpha=0.2)
+        scatter_panel(
+            ax,
+            merged['mean_non_additivity'],
+            merged['n_disease_associations'],
+            xlabel='Mean Non-Additivity Index per Cell Type',
+            ylabel='Number of Disease Associations (SMR)',
+            title='DGSA: Genetic Non-Additivity Predicts Disease Pleiotropy',
+            label_top=5, label_bot=0,
+        )
         plt.tight_layout()
-        for ext in ['png', 'pdf']:
-            fig.savefig(fig_dir / f'fig3b_nonadditivity_vs_disease.{ext}')
-        plt.close()
+        save_figure(fig, fig_dir, 'fig3b_nonadditivity_vs_disease')
         print("  fig3b saved")
 
     # ── Fig 3c: Non-additivity vs TOPPLE stability ──
@@ -369,38 +307,17 @@ def plot_figures(gene_scores, ct_summary, beta_matrix, correlations, fig_dir):
         info = correlations['topple']
         merged = info['merged']
         fig, ax = plt.subplots(figsize=(8, 6))
-        x = merged['mean_non_additivity']
-        y = merged['mean_RI']
-
-        ax.scatter(x, y, s=45, alpha=0.7, c=COLORS['primary'],
-                   edgecolors='white', linewidth=0.5, zorder=3)
-
-        z = np.polyfit(x, y, 1)
-        p_fit = np.poly1d(z)
-        x_line = np.linspace(x.min(), x.max(), 100)
-        ax.plot(x_line, p_fit(x_line), '--', color=COLORS['accent'], linewidth=1.5)
-
-        # Label extremes
-        for subset in [merged.nlargest(3, 'mean_RI'), merged.nsmallest(3, 'mean_RI')]:
-            for idx, row in subset.iterrows():
-                ax.annotate(idx, (row['mean_non_additivity'], row['mean_RI']),
-                            fontsize=5.5, ha='left', va='bottom',
-                            xytext=(4, 4), textcoords='offset points')
-
-        stats = (f'Spearman $\\rho$ = {info["rho"]:.3f}\n'
-                 f'P = {info["p"]:.2e}\nn = {info["n"]} cell types')
-        ax.text(0.05, 0.95, stats, transform=ax.transAxes, fontsize=8, va='top',
-                bbox=dict(boxstyle='round,pad=0.4', facecolor='wheat', alpha=0.8))
-
-        ax.set_xlabel('Mean Non-Additivity Index per Cell Type')
-        ax.set_ylabel('Mean TOPPLE Redistribution Index (RI)')
-        ax.set_title('DGSA × TOPPLE: Non-Additivity vs Regulatory Stability',
-                      fontweight='bold')
-        ax.grid(True, alpha=0.2)
+        scatter_panel(
+            ax,
+            merged['mean_non_additivity'],
+            merged['mean_RI'],
+            xlabel='Mean Non-Additivity Index per Cell Type',
+            ylabel='Mean TOPPLE Redistribution Index (RI)',
+            title='DGSA x TOPPLE: Non-Additivity vs Regulatory Stability',
+            label_top=3, label_bot=3,
+        )
         plt.tight_layout()
-        for ext in ['png', 'pdf']:
-            fig.savefig(fig_dir / f'fig3c_nonadditivity_vs_topple.{ext}')
-        plt.close()
+        save_figure(fig, fig_dir, 'fig3c_nonadditivity_vs_topple')
         print("  fig3c saved")
 
     # ── Fig 3d: Top 20 most non-additive genes ──
@@ -428,9 +345,7 @@ def plot_figures(gene_scores, ct_summary, beta_matrix, correlations, fig_dir):
                  '(top 2 cell types annotated)', fontweight='bold')
     ax.invert_yaxis()
     plt.tight_layout()
-    for ext in ['png', 'pdf']:
-        fig.savefig(fig_dir / f'fig3d_top20_nonadditivity.{ext}')
-    plt.close()
+    save_figure(fig, fig_dir, 'fig3d_top20_nonadditivity')
     print("  fig3d saved")
 
 

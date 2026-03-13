@@ -16,84 +16,44 @@ Author: Jeng-Wei Tjiu, M.D.
 Date: 2026-03
 """
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent / "scripts"))
+
 import pandas as pd
 import numpy as np
 from scipy.spatial.distance import jensenshannon
-from scipy.stats import spearmanr, zscore
+from scipy.stats import spearmanr
 import matplotlib.pyplot as plt
-import matplotlib as mpl
 import seaborn as sns
-from pathlib import Path
 import warnings
-import sys
-import io
 warnings.filterwarnings('ignore')
-# Fix Windows encoding for Unicode output
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
-# ── Configuration ──────────────────────────────────────────────────────
-DATA_DIR = Path("data")
-FIG_DIR = Path("figures")
-RESULTS_DIR = Path("results")
-FIG_DIR.mkdir(exist_ok=True)
-RESULTS_DIR.mkdir(exist_ok=True)
-
-# Nature-style color palette
-COLORS = {
-    'stabilizer': '#c0392b',
-    'destabilizer': '#2980b9',
-    'neutral': '#95a5a6',
-    'accent': '#27ae60',
-}
+from utils import (setup_stdout, ensure_dirs, setup_figure_style, save_figure,
+                   find_file, detect_column, COLORS, DATA_DIR, FIG_DIR, RESULTS_DIR)
+setup_stdout()
+ensure_dirs()
 
 # ── Step 1: Load Table S5 ─────────────────────────────────────────────
 def load_table_s5(data_dir: Path) -> pd.DataFrame:
-    """Load CIMA Table S5 (203 eRegulons × 61 cell types).
-    
-    Tries multiple possible filenames and formats.
-    Returns raw dataframe for inspection.
+    """Load CIMA Table S5 (203 eRegulons x 61 cell types).
+
+    Auto-detects the AUC/RSS data sheet from the Excel workbook.
     """
-    candidates = [
-        "science_adt3130_table_s5.xlsx",
-        "table_s5.xlsx",
-        "Table_S5.xlsx",
-        "science.adt3130_table_s5.xlsx",
-        "adt3130_table_s5.xlsx",
-    ]
-    
-    for fname in candidates:
-        fpath = data_dir / fname
-        if fpath.exists():
-            print(f"✓ Loading: {fpath}")
-            # Try multiple sheets — prefer the AUC/RSS data sheet
-            xls = pd.ExcelFile(fpath)
-            print(f"  Sheets: {xls.sheet_names}")
-            # Look for the main data sheet with AUC/RSS per regulon × cell type
-            target_sheet = 0
-            for idx, sname in enumerate(xls.sheet_names):
-                if 'auc' in sname.lower() or 'activator' in sname.lower():
-                    target_sheet = idx
-                    break
-            df = pd.read_excel(fpath, sheet_name=target_sheet)
-            print(f"  Using sheet: {xls.sheet_names[target_sheet]}")
-            print(f"  Shape: {df.shape}")
-            print(f"  Columns: {list(df.columns[:10])}...")
-            return df
-    
-    # Also try CSV
-    for fname in ["science_adt3130_table_s5.csv", "table_s5.csv"]:
-        fpath = data_dir / fname
-        if fpath.exists():
-            print(f"✓ Loading CSV: {fpath}")
-            df = pd.read_csv(fpath)
-            print(f"  Shape: {df.shape}")
-            return df
-    
-    raise FileNotFoundError(
-        f"Table S5 not found in {data_dir}/. "
-        f"Expected one of: {candidates}\n"
-        f"Available files: {list(data_dir.glob('*'))}"
-    )
+    fpath = find_file(data_dir, table_key='s5')
+    print(f"Loading: {fpath}")
+    xls = pd.ExcelFile(fpath)
+    print(f"  Sheets: {xls.sheet_names}")
+    # Prefer the main data sheet with AUC/RSS per regulon x cell type
+    target_sheet = 0
+    for idx, sname in enumerate(xls.sheet_names):
+        if 'auc' in sname.lower() or 'activator' in sname.lower():
+            target_sheet = idx
+            break
+    df = pd.read_excel(fpath, sheet_name=target_sheet)
+    print(f"  Using sheet: {xls.sheet_names[target_sheet]}")
+    print(f"  Shape: {df.shape}")
+    return df
 
 
 def build_auc_matrix(df: pd.DataFrame) -> pd.DataFrame:
@@ -104,46 +64,18 @@ def build_auc_matrix(df: pd.DataFrame) -> pd.DataFrame:
     
     This function auto-detects column names.
     """
-    cols = [c.lower().strip() for c in df.columns]
-    col_map = {c: orig for c, orig in zip(cols, df.columns)}
-    
-    # Auto-detect regulon column
-    regulon_col = None
-    for candidate in ['eregulon', 'regulon', 'tf', 'tf_name', 'gene', 'eregulon_name']:
-        if candidate in cols:
-            regulon_col = col_map[candidate]
-            break
-    
-    # Auto-detect cell type column
-    celltype_col = None
-    for candidate in ['cell_type_l4', 'cell_type', 'celltype', 'cell type', 'l4', 'l4_celltype', 'cluster']:
-        if candidate in cols:
-            celltype_col = col_map[candidate]
-            break
-    
-    # Auto-detect AUC column
-    auc_col = None
-    for candidate in ['auc', 'auc_score', 'mean_auc', 'regulon_auc']:
-        if candidate in cols:
-            auc_col = col_map[candidate]
-            break
-    
-    # Auto-detect RSS column
-    rss_col = None
-    for candidate in ['rss', 'rss_score', 'regulon_specificity_score']:
-        if candidate in cols:
-            rss_col = col_map[candidate]
-            break
-    
-    # If auto-detect fails, print columns and let user adjust
+    regulon_col = detect_column(df, ['eregulon', 'regulon', 'tf', 'tf_name', 'gene'],
+                                label='regulon')
+    celltype_col = detect_column(df, ['cell_type_l4', 'cell_type', 'celltype', 'l4'],
+                                 label='cell type')
+    auc_col = detect_column(df, ['mean_auc', 'auc', 'auc_score', 'regulon_auc'],
+                            label='AUC')
+    rss_col = detect_column(df, ['rss', 'rss_score', 'regulon_specificity_score'],
+                            label='RSS')
+
+    # Positional fallback
     if any(x is None for x in [regulon_col, celltype_col, auc_col]):
-        print("\n⚠ Column auto-detection incomplete. Available columns:")
-        for i, c in enumerate(df.columns):
-            print(f"  [{i}] {c} — dtype={df[c].dtype}, sample: {df[c].iloc[0]}")
-        print("\n→ Please update column mapping in build_auc_matrix()")
-        
-        # Fallback: assume first few columns
-        print("\n  Attempting positional fallback...")
+        print("  Column auto-detection incomplete, using positional fallback")
         regulon_col = regulon_col or df.columns[0]
         celltype_col = celltype_col or df.columns[1]
         auc_col = auc_col or df.columns[2]
@@ -309,22 +241,6 @@ def lineage_analysis(ri_df: pd.DataFrame, df_raw: pd.DataFrame) -> dict:
 
 
 # ── Step 4: Publication Figures ────────────────────────────────────────
-def setup_figure_style():
-    """Nature-style figure formatting."""
-    plt.rcParams.update({
-        'font.family': 'Arial',
-        'font.size': 8,
-        'axes.titlesize': 10,
-        'axes.labelsize': 9,
-        'xtick.labelsize': 7,
-        'ytick.labelsize': 7,
-        'legend.fontsize': 7,
-        'figure.dpi': 300,
-        'savefig.dpi': 300,
-        'savefig.bbox': 'tight',
-        'savefig.pad_inches': 0.1,
-    })
-
 
 def plot_stability_landscape(ri_df, scores, fig_dir):
     """Figure 1: TOPPLE Stability Landscape Heatmap.
@@ -379,10 +295,8 @@ def plot_stability_landscape(ri_df, scores, fig_dir):
     
     plt.tight_layout()
     
-    for ext in ['png', 'pdf']:
-        fig.savefig(fig_dir / f'fig1_topple_stability_landscape.{ext}')
-    plt.close()
-    print(f"✓ Figure 1 saved: fig1_topple_stability_landscape.png/pdf")
+    save_figure(fig, fig_dir, 'fig1_topple_stability_landscape')
+    print("  fig1_topple_stability_landscape saved")
 
 
 def plot_stabilizer_ranking(scores, fig_dir):
@@ -428,10 +342,8 @@ def plot_stabilizer_ranking(scores, fig_dir):
                  fontsize=11, fontweight='bold', y=1.02)
     plt.tight_layout()
     
-    for ext in ['png', 'pdf']:
-        fig.savefig(fig_dir / f'fig1b_stabilizer_ranking.{ext}')
-    plt.close()
-    print(f"✓ Figure 1b saved: fig1b_stabilizer_ranking.png/pdf")
+    save_figure(fig, fig_dir, 'fig1b_stabilizer_ranking')
+    print("  fig1b_stabilizer_ranking saved")
 
 
 def plot_lineage_comparison(ri_df, lineage_map, scores, fig_dir):
@@ -465,10 +377,8 @@ def plot_lineage_comparison(ri_df, lineage_map, scores, fig_dir):
     ax.set_title('Lineage-Specific Stability — Top 10 TOPPLE Stabilizers', fontweight='bold')
     
     plt.tight_layout()
-    for ext in ['png', 'pdf']:
-        fig.savefig(fig_dir / f'fig1c_lineage_stability.{ext}')
-    plt.close()
-    print(f"✓ Figure 1c saved: fig1c_lineage_stability.png/pdf")
+    save_figure(fig, fig_dir, 'fig1c_lineage_stability')
+    print("  fig1c_lineage_stability saved")
 
 
 # ── Main ───────────────────────────────────────────────────────────────

@@ -18,67 +18,12 @@ from scipy.spatial.distance import squareform
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import seaborn as sns
-from pathlib import Path
-import sys
-import io
 import warnings
 warnings.filterwarnings('ignore')
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
-RESULTS_DIR = Path("results")
-FIG_DIR = Path("figures")
-
-
-def setup_figure_style():
-    plt.rcParams.update({
-        'font.family': 'Arial',
-        'font.size': 8,
-        'axes.titlesize': 10,
-        'axes.labelsize': 9,
-        'xtick.labelsize': 7,
-        'ytick.labelsize': 7,
-        'legend.fontsize': 7,
-        'figure.dpi': 300,
-        'savefig.dpi': 300,
-        'savefig.bbox': 'tight',
-        'savefig.pad_inches': 0.15,
-        'axes.linewidth': 0.8,
-        'xtick.major.width': 0.6,
-        'ytick.major.width': 0.6,
-    })
-
-
-def _scatter_panel(ax, x, y, xlabel, ylabel, title, label_top=5, label_bot=0):
-    """Reusable scatter + regression + stats box."""
-    rho, p = spearmanr(x, y)
-    ax.scatter(x, y, s=40, alpha=0.7, c='#2c3e50', edgecolors='white',
-               linewidth=0.5, zorder=3)
-    z = np.polyfit(x, y, 1)
-    x_line = np.linspace(x.min(), x.max(), 100)
-    ax.plot(x_line, np.poly1d(z)(x_line), '--', color='#e74c3c', linewidth=1.5)
-
-    # Labels
-    df_tmp = pd.DataFrame({'x': x, 'y': y})
-    if label_top > 0:
-        for idx, row in df_tmp.nlargest(label_top, 'y').iterrows():
-            ax.annotate(idx, (row['x'], row['y']), fontsize=5.5,
-                        ha='left', va='bottom', xytext=(4, 3),
-                        textcoords='offset points')
-    if label_bot > 0:
-        for idx, row in df_tmp.nsmallest(label_bot, 'x').iterrows():
-            ax.annotate(idx, (row['x'], row['y']), fontsize=5.5,
-                        ha='right', va='top', xytext=(-4, -3),
-                        textcoords='offset points', color='#7f8c8d')
-
-    sig = '***' if p < 0.001 else '**' if p < 0.01 else '*' if p < 0.05 else 'n.s.'
-    stats = f'$\\rho$ = {rho:.3f} {sig}\nP = {p:.2e}\nn = {len(x)}'
-    ax.text(0.05, 0.95, stats, transform=ax.transAxes, fontsize=8, va='top',
-            bbox=dict(boxstyle='round,pad=0.4', facecolor='wheat', alpha=0.8))
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    ax.set_title(title, fontweight='bold', loc='left')
-    ax.grid(True, alpha=0.2)
-    return rho, p
+from utils import (setup_stdout, setup_figure_style, save_figure, scatter_panel,
+                   format_sig, check_prerequisites, COLORS, RESULTS_DIR, FIG_DIR)
+setup_stdout()
 
 
 def create_unified_figure():
@@ -165,7 +110,7 @@ def create_unified_figure():
     # Panel C: SICAI Mean r_b vs Disease
     # ==================================================================
     ax_c = fig.add_subplot(gs[1, 0])
-    _scatter_panel(
+    scatter_panel(
         ax_c,
         alt_merged['mean_rb'], alt_merged['n_disease_associations'],
         'Mean $r_b$ (Coupling Strength)',
@@ -177,7 +122,7 @@ def create_unified_figure():
     # ==================================================================
     ax_d = fig.add_subplot(gs[1, 1])
     dgsa_disease = dgsa_ct.join(disease_counts, how='inner')
-    _scatter_panel(
+    scatter_panel(
         ax_d,
         dgsa_disease['mean_non_additivity'], dgsa_disease['n_disease_associations'],
         'Mean Non-Additivity Index',
@@ -189,7 +134,7 @@ def create_unified_figure():
     # ==================================================================
     ax_e = fig.add_subplot(gs[2, 0])
     dgsa_topple = dgsa_ct.join(ct_mean_ri, how='inner')
-    _scatter_panel(
+    scatter_panel(
         ax_e,
         dgsa_topple['mean_non_additivity'], dgsa_topple['mean_RI'],
         'Mean Non-Additivity Index',
@@ -235,8 +180,8 @@ def create_unified_figure():
             if i == j:
                 annot[i, j] = '1.000'
             else:
-                sig = '***' if p_mat[i, j] < 0.001 else '**' if p_mat[i, j] < 0.01 \
-                    else '*' if p_mat[i, j] < 0.05 else ''
+                sig = format_sig(p_mat[i, j])
+                sig = '' if sig == 'n.s.' else sig
                 annot[i, j] = f'{rho_mat[i, j]:.3f}{sig}'
 
     sns.heatmap(pd.DataFrame(rho_mat, index=labels, columns=labels),
@@ -260,9 +205,7 @@ def create_unified_figure():
         'TOPPLE + SICAI + DGSA on CIMA Atlas (Yin et al., Science 2026)',
         fontsize=14, fontweight='bold', y=0.995)
 
-    for ext in ['png', 'pdf']:
-        fig.savefig(FIG_DIR / f'fig_unified_3method.{ext}')
-    plt.close()
+    save_figure(fig, FIG_DIR, 'fig_unified_3method')
     print("Unified figure saved: fig_unified_3method.png/pdf")
 
     return all_metrics, rho_mat, p_mat
@@ -376,10 +319,7 @@ def main():
         "dgsa_celltype_summary.csv",
         "dgsa_gene_scores.csv",
     ]
-    for f in required:
-        if not (RESULTS_DIR / f).exists():
-            print(f"  Missing: {RESULTS_DIR / f}")
-            return
+    check_prerequisites(RESULTS_DIR, required)
 
     all_metrics, rho_mat, p_mat = create_unified_figure()
     update_framing(all_metrics, rho_mat, p_mat)
