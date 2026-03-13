@@ -1,0 +1,14 @@
+# Large data files (supplementary tables from CIMA)
+data/
+__MACOSX/
+
+# Zip archives
+*.zip
+
+# Claude Code local state
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
