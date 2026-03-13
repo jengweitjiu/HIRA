@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Unified 8-Panel Publication Figure — HIRA 5-Layer Framework
-=============================================================
+HIRA Complete 8-Panel Publication Figure (v1.0)
+================================================
 Row 1: TOPPLE (A: stabilizer ranking, B: stability landscape)
-Row 2: Disease correlations (C: SICAI mean r_b, D: DGSA non-additivity)
-Row 3: STRATA validation (E: stabilizer expr by condition, F: coupling heatmap)
-Row 4: Cross-method (G: DGSA×TOPPLE, H: correlation matrix)
+Row 2: CIMA disease (C: SICAI mean r_b, D: DGSA non-additivity)
+Row 3: IPA + cross-method (E: sex perturbation violin, F: correlation matrix)
+Row 4: Tissue validation (G: STRATA stabilizer expr, H: coupling heatmap)
 
 Author: Jeng-Wei Tjiu, M.D.
 Date: 2026-03
@@ -13,8 +13,7 @@ Date: 2026-03
 
 import pandas as pd
 import numpy as np
-from scipy.stats import spearmanr
-from scipy.cluster.hierarchy import linkage, leaves_list
+from scipy.stats import spearmanr, mannwhitneyu
 from scipy.spatial.distance import squareform
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -22,13 +21,50 @@ import seaborn as sns
 import warnings
 warnings.filterwarnings('ignore')
 
-from scipy.stats import mannwhitneyu
 from utils import (setup_stdout, setup_figure_style, save_figure, scatter_panel,
-                   format_sig, check_prerequisites, COLORS, RESULTS_DIR, FIG_DIR)
+                   format_sig, check_prerequisites, find_file,
+                   COLORS, RESULTS_DIR, FIG_DIR, DATA_DIR)
 setup_stdout()
 
 
-def create_unified_figure():
+def load_ipa_sex_data():
+    """Load sex perturbation data from Table S5 and merge with TOPPLE roles."""
+    s5_file = find_file(DATA_DIR, table_key='s5')
+    xls = pd.ExcelFile(s5_file)
+    sex_sheet = [s for s in xls.sheet_names if 'sex' in s.lower()][0]
+    sex_df = pd.read_excel(s5_file, sheet_name=sex_sheet)
+
+    # Detect columns
+    cols = sex_df.columns.tolist()
+    reg_col = [c for c in cols if 'regulon' in c.lower() or 'eregulon' in c.lower()][0]
+    fc_candidates = [c for c in cols if 'log2' in c.lower() or 'fc' in c.lower()]
+    fc_col = fc_candidates[0] if fc_candidates else None
+
+    if fc_col is None:
+        return None
+
+    sex_df['regulon_raw'] = sex_df[reg_col].astype(str).str.strip()
+    sex_df['abs_log2FC'] = sex_df[fc_col].abs()
+
+    # Load TOPPLE roles — match by prefix (e.g., "ADNP_+_(32g)" → "ADNP_+")
+    scores = pd.read_csv(RESULTS_DIR / "topple_stability_scores.csv", index_col=0)
+    role_map = scores['role'].to_dict()
+
+    # Build prefix map: strip gene count suffix like "_(32g)"
+    import re
+    def clean_regulon(name):
+        # "ADNP_+_(32g)" → "ADNP_+"
+        return re.sub(r'_\(\d+g\)$', '', name)
+
+    sex_df['regulon_clean'] = sex_df['regulon_raw'].apply(clean_regulon)
+    sex_df['role'] = sex_df['regulon_clean'].map(role_map)
+    merged = sex_df.dropna(subset=['role', 'abs_log2FC'])
+
+    return merged[['regulon_clean', 'abs_log2FC', 'role']]
+
+
+def create_complete_figure():
+    """Create the definitive 8-panel HIRA figure."""
     setup_figure_style()
 
     # ── Load all results ──
@@ -36,16 +72,13 @@ def create_unified_figure():
     ri_matrix = pd.read_csv(RESULTS_DIR / "topple_ri_matrix.csv", index_col=0)
     alt_merged = pd.read_csv(RESULTS_DIR / "sicai_alt_metrics_disease_merged.csv", index_col=0)
     dgsa_ct = pd.read_csv(RESULTS_DIR / "dgsa_celltype_summary.csv", index_col=0)
+    strata = pd.read_csv(RESULTS_DIR / "strata_sample_metrics.csv")
+    atlas_mapping = pd.read_csv(RESULTS_DIR / "strata_atlas_mapping.csv", index_col=0)
+    rb_matrix = pd.read_csv(RESULTS_DIR / "sicai_rb_matrix.csv", index_col=0)
 
-    # Disease counts from alt_merged
     disease_counts = alt_merged['n_disease_associations']
-
-    # Per-cell-type mean RI (TOPPLE)
     ct_mean_ri = ri_matrix.mean(axis=0)
     ct_mean_ri.name = 'mean_RI'
-
-    # ── Load STRATA results ──
-    strata = pd.read_csv(RESULTS_DIR / "strata_sample_metrics.csv")
 
     # ── Figure layout: 4 rows × 2 cols ──
     fig = plt.figure(figsize=(16, 24))
@@ -68,8 +101,6 @@ def create_unified_figure():
     ax_a.set_title('A  TOPPLE: Top 15 Stabilizer eRegulons',
                     fontweight='bold', loc='left')
     ax_a.invert_yaxis()
-
-    # Bold #1
     ax_a.get_yticklabels()[0].set_fontweight('bold')
     ax_a.get_yticklabels()[0].set_color('#b71c1c')
 
@@ -88,7 +119,7 @@ def create_unified_figure():
             va='center')
 
     # ==================================================================
-    # Panel B: TOPPLE Stability Landscape Heatmap (top 25 vs bottom 25)
+    # Panel B: TOPPLE Stability Landscape Heatmap
     # ==================================================================
     ax_b = fig.add_subplot(gs[0, 1])
     top25 = scores.head(25).index.tolist()
@@ -135,100 +166,59 @@ def create_unified_figure():
         'D  DGSA: Genetic Non-Additivity vs Disease Pleiotropy')
 
     # ==================================================================
-    # Panel E: STRATA — Stabilizer expression by condition
+    # Panel E: IPA Sex Perturbation Violin
     # ==================================================================
     ax_e = fig.add_subplot(gs[2, 0])
-    cond_palette = {'Healthy': '#27ae60', 'Non-Lesional': '#3498db', 'Lesional': '#e74c3c'}
-    order = ['Healthy', 'Non-Lesional', 'Lesional']
-    avail_order = [c for c in order if c in strata['condition'].values]
+    sex_data = load_ipa_sex_data()
+    if sex_data is not None:
+        sex_data = sex_data.dropna(subset=['abs_log2FC'])
+        role_palette = {
+            'stabilizer': COLORS['stabilizer'],
+            'neutral': COLORS['neutral'],
+            'destabilizer': COLORS['destabilizer'],
+        }
+        role_order = ['stabilizer', 'neutral', 'destabilizer']
+        sns.violinplot(data=sex_data, x='role', y='abs_log2FC',
+                       order=role_order, palette=role_palette,
+                       inner='quartile', cut=0, ax=ax_e)
+        ax_e.set_xlabel('')
+        ax_e.set_ylabel('|log$_2$ Fold Change| (Sex Difference)')
+        ax_e.set_title('E  IPA: Stabilizers Resist Sex Perturbation',
+                        fontweight='bold', loc='left', fontsize=9)
+        ax_e.set_ylim(0, sex_data['abs_log2FC'].quantile(0.99))
 
-    sns.boxplot(data=strata, x='condition', y='mean_stabilizer_expr',
-                order=avail_order, palette=cond_palette,
-                width=0.5, fliersize=0, ax=ax_e)
-    sns.stripplot(data=strata, x='condition', y='mean_stabilizer_expr',
-                  order=avail_order, palette=cond_palette,
-                  size=7, alpha=0.7, jitter=0.15, ax=ax_e)
-    ax_e.set_xlabel('')
-    ax_e.set_ylabel('Mean Stabilizer TF Expression')
-    ax_e.set_title('E  STRATA: Stabilizer Expression in Psoriasis Tissue',
-                    fontweight='bold', loc='left', fontsize=9)
-
-    # Significance bracket
-    h_vals = strata[strata['condition'] == 'Healthy']['mean_stabilizer_expr']
-    l_vals = strata[strata['condition'] == 'Lesional']['mean_stabilizer_expr']
-    if len(h_vals) > 0 and len(l_vals) > 0:
-        _, p_hl = mannwhitneyu(h_vals, l_vals, alternative='two-sided')
-        ymax = strata['mean_stabilizer_expr'].max()
-        h_idx = avail_order.index('Healthy')
-        l_idx = avail_order.index('Lesional')
-        ax_e.plot([h_idx, h_idx, l_idx, l_idx],
-                  [ymax * 1.05, ymax * 1.08, ymax * 1.08, ymax * 1.05],
+        # Add P-value annotation
+        stab_v = sex_data[sex_data['role'] == 'stabilizer']['abs_log2FC']
+        dest_v = sex_data[sex_data['role'] == 'destabilizer']['abs_log2FC']
+        _, p_sex = mannwhitneyu(stab_v, dest_v, alternative='less')
+        ymax_e = ax_e.get_ylim()[1]
+        ax_e.plot([0, 0, 2, 2],
+                  [ymax_e * 0.88, ymax_e * 0.91, ymax_e * 0.91, ymax_e * 0.88],
                   color='black', linewidth=1)
-        ax_e.text((h_idx + l_idx) / 2, ymax * 1.09,
-                  f'P = {p_hl:.2e}', ha='center', fontsize=8)
+        ax_e.text(1, ymax_e * 0.93, f'P = {p_sex:.1e}',
+                  ha='center', fontsize=8, fontweight='bold')
+        # Median annotations
+        ax_e.text(0, stab_v.median() + ymax_e * 0.02,
+                  f'med={stab_v.median():.3f}', ha='center', fontsize=6.5,
+                  color=COLORS['stabilizer'])
+        ax_e.text(2, dest_v.median() + ymax_e * 0.02,
+                  f'med={dest_v.median():.3f}', ha='center', fontsize=6.5,
+                  color=COLORS['destabilizer'])
 
     # ==================================================================
-    # Panel F: STRATA — Compositional coupling by condition
+    # Panel F: Cross-Method Correlation Matrix
     # ==================================================================
     ax_f = fig.add_subplot(gs[2, 1])
-    sns.boxplot(data=strata, x='condition', y='coupling_strength',
-                order=avail_order, palette=cond_palette,
-                width=0.5, fliersize=0, ax=ax_f)
-    sns.stripplot(data=strata, x='condition', y='coupling_strength',
-                  order=avail_order, palette=cond_palette,
-                  size=7, alpha=0.7, jitter=0.15, ax=ax_f)
-    ax_f.set_xlabel('')
-    ax_f.set_ylabel('Mean |Coupling| (25 Cell Types)')
-    ax_f.set_title('F  STRATA: Compositional Coupling in Tissue',
-                    fontweight='bold', loc='left', fontsize=9)
 
-    # Significance bracket
-    h_coup = strata[strata['condition'] == 'Healthy']['coupling_strength']
-    l_coup = strata[strata['condition'] == 'Lesional']['coupling_strength']
-    if len(h_coup) > 0 and len(l_coup) > 0:
-        _, p_coup = mannwhitneyu(h_coup, l_coup, alternative='two-sided')
-        ymax_f = strata['coupling_strength'].max()
-        ax_f.plot([h_idx, h_idx, l_idx, l_idx],
-                  [ymax_f * 1.02, ymax_f * 1.04, ymax_f * 1.04, ymax_f * 1.02],
-                  color='black', linewidth=1)
-        ax_f.text((h_idx + l_idx) / 2, ymax_f * 1.045,
-                  f'P = {p_coup:.2e}', ha='center', fontsize=8)
-
-    # ==================================================================
-    # Panel G: DGSA Non-additivity vs TOPPLE RI
-    # ==================================================================
-    ax_g = fig.add_subplot(gs[3, 0])
-    dgsa_topple = dgsa_ct.join(ct_mean_ri, how='inner')
-    scatter_panel(
-        ax_g,
-        dgsa_topple['mean_non_additivity'], dgsa_topple['mean_RI'],
-        'Mean Non-Additivity Index',
-        'Mean TOPPLE RI',
-        'G  Cross-Method: DGSA × TOPPLE',
-        label_top=3, label_bot=3)
-
-    # ==================================================================
-    # Panel H: Summary Correlation Matrix
-    # ==================================================================
-    ax_h = fig.add_subplot(gs[3, 1])
-
-    # Build a common cell-type index across all 4 metrics
-    # TOPPLE RI per cell type
     topple_series = ct_mean_ri.rename('TOPPLE_RI')
-    # SICAI mean r_b per cell type
     sicai_series = alt_merged['mean_rb'].rename('SICAI_mean_rb')
-    # DGSA non-additivity per cell type
     dgsa_series = dgsa_ct['mean_non_additivity'].rename('DGSA_NonAdd')
-    # Disease count per cell type
     disease_series = disease_counts.rename('Disease_N')
-
-    all_metrics = pd.concat([topple_series, sicai_series, dgsa_series, disease_series],
-                            axis=1).dropna()
+    all_metrics = pd.concat([topple_series, sicai_series, dgsa_series,
+                             disease_series], axis=1).dropna()
 
     labels = ['TOPPLE RI', 'SICAI\nmean $r_b$', 'DGSA\nNon-Add', 'Disease\nCount']
-    cols = all_metrics.columns.tolist()
-    n = len(cols)
-
+    n = len(labels)
     rho_mat = np.ones((n, n))
     p_mat = np.zeros((n, n))
     for i in range(n):
@@ -238,7 +228,6 @@ def create_unified_figure():
                 rho_mat[i, j] = r
                 p_mat[i, j] = p
 
-    # Annotations: rho + stars
     annot = np.empty((n, n), dtype=object)
     for i in range(n):
         for j in range(n):
@@ -253,145 +242,141 @@ def create_unified_figure():
                 cmap='RdBu_r', center=0, vmin=-1, vmax=1,
                 annot=annot, fmt='', annot_kws={'fontsize': 9, 'fontweight': 'bold'},
                 cbar_kws={'label': 'Spearman $\\rho$', 'shrink': 0.7},
-                linewidths=1.5, linecolor='white',
-                ax=ax_h)
-    ax_h.set_title('H  Cross-Method Correlation Matrix',
+                linewidths=1.5, linecolor='white', ax=ax_f)
+    ax_f.set_title('F  Cross-Method Correlation Matrix (CIMA)',
                     fontweight='bold', loc='left')
-    ax_h.set_xticklabels(labels, fontsize=8, rotation=0, ha='center')
-    ax_h.set_yticklabels(labels, fontsize=8, rotation=0)
+    ax_f.set_xticklabels(labels, fontsize=8, rotation=0, ha='center')
+    ax_f.set_yticklabels(labels, fontsize=8, rotation=0)
+    ax_f.text(0.5, -0.08, f'n = {len(all_metrics)} cell types',
+              transform=ax_f.transAxes, fontsize=7, ha='center', color='#7f8c8d')
 
-    # Add n annotation
-    ax_h.text(0.5, -0.08, f'n = {len(all_metrics)} cell types (common across all methods)',
-              transform=ax_h.transAxes, fontsize=7, ha='center', color='#7f8c8d')
+    # ==================================================================
+    # Panel G: STRATA — Stabilizer expression by condition
+    # ==================================================================
+    ax_g = fig.add_subplot(gs[3, 0])
+    cond_palette = {'Healthy': '#27ae60', 'Non-Lesional': '#3498db',
+                    'Lesional': '#e74c3c'}
+    order = ['Healthy', 'Non-Lesional', 'Lesional']
+    avail_order = [c for c in order if c in strata['condition'].values]
+
+    sns.boxplot(data=strata, x='condition', y='mean_stabilizer_expr',
+                order=avail_order, palette=cond_palette,
+                width=0.5, fliersize=0, ax=ax_g)
+    sns.stripplot(data=strata, x='condition', y='mean_stabilizer_expr',
+                  order=avail_order, palette=cond_palette,
+                  size=7, alpha=0.7, jitter=0.15, ax=ax_g)
+    ax_g.set_xlabel('')
+    ax_g.set_ylabel('Mean Stabilizer TF Expression')
+    ax_g.set_title('G  STRATA: Stabilizer Expression (GSE202011 Visium)',
+                    fontweight='bold', loc='left', fontsize=9)
+
+    h_vals = strata[strata['condition'] == 'Healthy']['mean_stabilizer_expr']
+    l_vals = strata[strata['condition'] == 'Lesional']['mean_stabilizer_expr']
+    if len(h_vals) > 0 and len(l_vals) > 0:
+        _, p_hl = mannwhitneyu(h_vals, l_vals, alternative='two-sided')
+        ymax_g = strata['mean_stabilizer_expr'].max()
+        h_idx = avail_order.index('Healthy')
+        l_idx = avail_order.index('Lesional')
+        ax_g.plot([h_idx, h_idx, l_idx, l_idx],
+                  [ymax_g * 1.05, ymax_g * 1.08, ymax_g * 1.08, ymax_g * 1.05],
+                  color='black', linewidth=1)
+        ax_g.text((h_idx + l_idx) / 2, ymax_g * 1.09,
+                  f'P = {p_hl:.2e}', ha='center', fontsize=8)
+
+    # ==================================================================
+    # Panel H: STRATA-Atlas — Coupling comparison heatmap
+    # ==================================================================
+    ax_h = fig.add_subplot(gs[3, 1])
+
+    # Import the mapping from 07_strata_atlas
+    from importlib.util import spec_from_file_location, module_from_spec
+    import os
+    spec = spec_from_file_location("strata_atlas",
+        os.path.join(os.path.dirname(__file__), "07_strata_atlas.py"))
+    sa_mod = module_from_spec(spec)
+    spec.loader.exec_module(sa_mod)
+
+    cima_metrics, _ = sa_mod.load_cima_metrics()
+    mapped = sa_mod.aggregate_cima_to_gse(cima_metrics)
+
+    # Load GSE immune scores and compute coupling matrices
+    sample_means = sa_mod.load_gse_immune_scores()
+    cima_coupling, gse_coupling = sa_mod.compute_coupling_matrices(
+        sample_means, rb_matrix, mapped)
+
+    shared_cats = cima_coupling.index.intersection(gse_coupling.index)
+    if len(shared_cats) >= 3:
+        n_sc = len(shared_cats)
+        cima_vals = cima_coupling.loc[shared_cats, shared_cats].values.astype(float)
+        gse_vals = gse_coupling.loc[shared_cats, shared_cats].values.astype(float)
+
+        combined = np.zeros((n_sc, n_sc))
+        for i in range(n_sc):
+            for j in range(n_sc):
+                if i == j:
+                    combined[i, j] = 1.0
+                elif i < j:
+                    combined[i, j] = cima_vals[i, j] if not np.isnan(cima_vals[i, j]) else 0
+                else:
+                    combined[i, j] = gse_vals[i, j] if not np.isnan(gse_vals[i, j]) else 0
+
+        short_names = [c.replace('Macrophage_', 'Mac_') for c in shared_cats]
+        comb_df = pd.DataFrame(combined, index=short_names, columns=short_names)
+
+        sns.heatmap(comb_df, cmap='RdBu_r', center=0, vmin=-1, vmax=1,
+                    xticklabels=True, yticklabels=True,
+                    cbar_kws={'label': 'Coupling', 'shrink': 0.6},
+                    linewidths=0.5, linecolor='white', ax=ax_h)
+        ax_h.set_title('H  Blood Genetic (upper) vs Skin Spatial (lower)',
+                        fontweight='bold', loc='left', fontsize=9)
+        ax_h.tick_params(labelsize=7)
+
+        # Mantel test
+        mantel_r, mantel_p, mantel_n = sa_mod.mantel_test(
+            cima_coupling.loc[shared_cats, shared_cats],
+            gse_coupling.loc[shared_cats, shared_cats], n_perm=9999)
+        ax_h.text(0.5, -0.10,
+                  f'Mantel r = {mantel_r:.3f}, P = {mantel_p:.3f} '
+                  f'({mantel_n} pairs)',
+                  transform=ax_h.transAxes, fontsize=8, ha='center',
+                  color='#2c3e50', fontweight='bold')
+        ax_h.text(0.82, 0.18, 'CIMA\n$r_b$', transform=ax_h.transAxes,
+                  fontsize=7, ha='center', color='#7f8c8d', fontstyle='italic')
+        ax_h.text(0.18, 0.82, 'GSE\nspatial', transform=ax_h.transAxes,
+                  fontsize=7, ha='center', color='#7f8c8d', fontstyle='italic')
 
     # ── Suptitle ──
     fig.suptitle(
-        'HIRA: Hierarchical Immune Regulatory Architecture (5 Layers)\n'
-        'CIMA Atlas + GSE202011 Psoriasis Visium Validation',
+        'HIRA: Hierarchical Immune Regulatory Architecture\n'
+        '6-Layer Framework Validated on CIMA Atlas + GSE202011 Visium',
         fontsize=14, fontweight='bold', y=0.995)
 
-    save_figure(fig, FIG_DIR, 'fig_unified_5layer')
-    print("Unified figure saved: fig_unified_5layer.png/pdf")
+    save_figure(fig, FIG_DIR, 'fig_HIRA_complete')
+    print("Complete figure saved: fig_HIRA_complete.png/pdf")
 
     return all_metrics, rho_mat, p_mat
 
 
-def update_framing(all_metrics, rho_mat, p_mat):
-    """Update genome_biology_framing.md with DGSA results."""
-
-    scores = pd.read_csv(RESULTS_DIR / "topple_stability_scores.csv", index_col=0)
-    ri_matrix = pd.read_csv(RESULTS_DIR / "topple_ri_matrix.csv", index_col=0)
-    alt_merged = pd.read_csv(RESULTS_DIR / "sicai_alt_metrics_disease_merged.csv", index_col=0)
-    dgsa_ct = pd.read_csv(RESULTS_DIR / "dgsa_celltype_summary.csv", index_col=0)
-    dgsa_genes = pd.read_csv(RESULTS_DIR / "dgsa_gene_scores.csv", index_col=0)
-    disease_counts = alt_merged['n_disease_associations']
-
-    n_stabilizers = (scores['role'] == 'stabilizer').sum()
-    n_regulons = len(scores)
-    n_celltypes_topple = ri_matrix.shape[1]
-    top1 = scores.index[0]
-
-    stat5b_hits = [r for r in scores.index if r.upper().startswith('STAT5B')]
-    stat5b_line = ""
-    if stat5b_hits:
-        s5key = stat5b_hits[0]
-        s5rank = int(scores.loc[s5key, 'stability_rank'])
-        stat5b_line = (
-            f"Notably, STAT5B — the #1 stabilizer in our prior psoriasis analysis "
-            f"(GSE173706, RI 0.03 -> 0.61) — ranks #{s5rank} in healthy blood, "
-            f"consistent with disease-specific amplification of regulatory importance."
-        )
-
-    rho_sicai, p_sicai = spearmanr(alt_merged['mean_rb'], disease_counts)
-    dgsa_disease = dgsa_ct.join(disease_counts, how='inner')
-    rho_dgsa, p_dgsa = spearmanr(dgsa_disease['mean_non_additivity'],
-                                  dgsa_disease['n_disease_associations'])
-
-    framing = f"""# Multi-Scale Architectural Analysis of the Human Immune System
-## Revealed by Geometric Decomposition of the CIMA Atlas
-
-### Framing for Genome Biology / Nature Communications
-
-The Chinese Immune Multi-Omics Atlas (CIMA; Yin et al., Science 2026) represents
-a landmark cataloging effort -- 10 million cells from 428 individuals across 73 cell
-types, with paired single-cell RNA-seq and ATAC-seq enabling the most comprehensive
-map of human immune regulation to date. However, cataloging is not understanding.
-CIMA's 203 eRegulons, 223,405 xQTLs, and 2,085 disease associations remain
-uninterpreted as architectural entities. What stabilizes the regulatory landscape?
-Which regulons are load-bearing, and which are dispensable? How does a cell type's
-coupling and effect-size architecture determine its disease vulnerability?
-
-We address these questions by applying three novel mathematical frameworks to CIMA's
-published supplementary data:
-
-**TOPPLE stability analysis** of {n_regulons} eRegulons across {n_celltypes_topple}
-cell types reveals a striking hierarchy: {top1} emerges as the top stabilizer, with
-{n_stabilizers} regulons classified as structurally critical (top quartile
-redistribution index). {stat5b_line}
-
-**SICAI coupling analysis** of 4,692 eQTL sharing pairs across 69 cell types
-demonstrates that mean eQTL effect-size correlation (mean r_b) significantly
-predicts disease pleiotropy (Spearman rho = {rho_sicai:.3f}, P = {p_sicai:.2e},
-n = {len(alt_merged)} cell types). Shannon entropy of the r_b profile exhibits
-a ceiling effect in healthy blood (CV = 0.009), while mean r_b captures the
-biologically relevant variance (CV = 0.070).
-
-**DGSA geometric decomposition** of {len(dgsa_genes):,} cis-eQTL genes reveals
-that genetic non-additivity -- a measure of cell-type-specific effect-size geometry
--- is the strongest predictor of disease pleiotropy across all three methods
-(Spearman rho = {rho_dgsa:.3f}, P = {p_dgsa:.2e}, n = {len(dgsa_disease)} cell
-types). Cell types whose eQTL effects are concentrated in specific directions of
-effect-size space (high non-additivity) carry substantially more disease associations
-than those with uniform, shared effects.
-
-Cross-method validation confirms complementary architectural axes: DGSA non-additivity
-and SICAI coupling strength capture distinct but convergent aspects of disease
-vulnerability, while TOPPLE stability identifies the regulons whose perturbation
-most disrupts cell-type identity.
-
-### Key Statistics Summary
-
-| Method | Metric vs Disease | rho | P-value | n |
-|--------|-------------------|-----|---------|---|
-| SICAI  | Mean r_b          | {rho_sicai:.3f} | {p_sicai:.2e} | {len(alt_merged)} |
-| DGSA   | Non-additivity    | {rho_dgsa:.3f} | {p_dgsa:.2e} | {len(dgsa_disease)} |
-
-Our framework is computationally lightweight -- all analyses use only CIMA's published
-supplementary tables, requiring no raw data access or high-performance computing. This
-establishes a paradigm where mathematical frameworks, applied to community-generated
-atlases, can extract fundamentally new biological insights from existing data.
-
-**Keywords:** regulatory architecture, stability landscape, genetic non-additivity,
-coupling strength, single-cell transcriptomics, immune atlas, CIMA, eQTL geometry
-"""
-
-    output_path = RESULTS_DIR / "genome_biology_framing.md"
-    with open(output_path, 'w') as f:
-        f.write(framing)
-
-    print(f"Framing updated: {output_path} (~{len(framing.split())} words)")
-
-
 def main():
     print("=" * 70)
-    print("Unified 8-Panel Figure: HIRA 5-Layer Framework")
+    print("HIRA Complete 8-Panel Figure (v1.0)")
     print("=" * 70)
 
     required = [
         "topple_stability_scores.csv",
         "topple_ri_matrix.csv",
         "sicai_alt_metrics_disease_merged.csv",
+        "sicai_rb_matrix.csv",
         "dgsa_celltype_summary.csv",
-        "dgsa_gene_scores.csv",
         "strata_sample_metrics.csv",
+        "strata_atlas_mapping.csv",
     ]
     check_prerequisites(RESULTS_DIR, required)
 
-    all_metrics, rho_mat, p_mat = create_unified_figure()
-    update_framing(all_metrics, rho_mat, p_mat)
+    create_complete_figure()
 
     print(f"\n{'=' * 70}")
-    print("DONE")
+    print("DONE — fig_HIRA_complete.pdf ready for submission")
     print(f"{'=' * 70}")
 
 

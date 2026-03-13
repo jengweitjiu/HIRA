@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Generate HIRA manuscript as .docx using python-docx.
-Genome Biology format: Abstract, Introduction, Results (4 sections),
+Genome Biology format: Abstract, Introduction, Results (6 layer sections),
 Discussion, Methods, Figure Legends, References.
 """
 
@@ -92,7 +92,7 @@ def build_document():
         'principles governing regulatory stability, inter-cellular coupling, '
         'and genetic effect-size geometry remain unexplored. '
         'We introduce HIRA (Hierarchical Immune Regulatory Architecture), '
-        'a five-layer analytical framework that extracts structural insights '
+        'a six-layer analytical framework that extracts structural insights '
         'from published supplementary tables and validates them on independent '
         'spatial transcriptomics data, without requiring raw data access.'
     )
@@ -116,7 +116,11 @@ def build_document():
         '(GSE202011; 24,227 spots) validates HIRA predictions on independent '
         'tissue data: stabilizer TFs show compensatory upregulation in lesional '
         'skin (median 0.049 vs 0.206, P = 3.3 x 10^-4), confirming their '
-        'functional importance in disease.'
+        'functional importance in disease. STRATA-Atlas cross-tissue '
+        'integration reveals that CIMA blood eQTL coupling and GSE202011 '
+        'skin spatial co-occurrence are significantly anti-correlated '
+        '(Mantel r = -0.278, P = 0.003), indicating that genetically '
+        'coupled blood cell types spatially segregate in tissue.'
     )
 
     doc.add_paragraph(
@@ -173,18 +177,19 @@ def build_document():
 
     doc.add_paragraph(
         'We address these questions through HIRA (Hierarchical Immune '
-        'Regulatory Architecture), a five-layer analytical framework comprising '
+        'Regulatory Architecture), a six-layer analytical framework comprising '
         'TOPPLE (Transcriptomic Perturbation-based Phenotype Landscape Explorer) '
         'for regulon stability, SICAI (Statistical Inference of Coupling '
         'Architecture Index) for inter-cellular coupling topology, DGSA '
         '(Directional Geometric Signal Architecture) for effect-size geometry, '
         'IPA (In-silico Perturbation Architecture) for demographic '
-        'perturbation resistance, and STRATA (Spatial Tissue Regulatory '
-        'Architecture Analysis) for independent validation on spatial '
-        'transcriptomics tissue data. Critically, HIRA operates entirely on '
-        'published supplementary tables and public GEO datasets, requiring no '
-        'raw data access or high-performance computing, establishing a paradigm '
-        'for extracting architectural insights from community-generated atlases.'
+        'perturbation resistance, STRATA (Spatial Tissue Regulatory '
+        'Architecture Analysis) for tissue-level validation, and '
+        'STRATA-Atlas for cross-tissue architectural integration. '
+        'Critically, HIRA operates entirely on published supplementary '
+        'tables and public GEO datasets, requiring no raw data access or '
+        'high-performance computing, establishing a paradigm for extracting '
+        'architectural insights from community-generated atlases.'
     )
 
     # ════════════════════════════════════════════════════════════════════
@@ -400,13 +405,47 @@ def build_document():
         'compositional level (Visium).'
     )
 
+    # -- STRATA-Atlas --
+    doc.add_heading(
+        'STRATA-Atlas reveals anti-correlated blood-skin coupling architecture',
+        level=2)
+
+    doc.add_paragraph(
+        'To bridge CIMA blood atlas architecture and GSE202011 skin tissue '
+        'organization, we mapped 10 of 12 GSE202011 immune cell categories '
+        'to their CIMA L4 equivalents (many-to-one aggregation; Mast cells '
+        'and Neutrophils had no CIMA blood equivalents). For each mapped '
+        'category, we computed the mean CIMA architectural metrics across '
+        'constituent subtypes (e.g., CD4_Tconv mapped to 13 CIMA CD4 subtypes). '
+        'We then compared two coupling matrices: the CIMA genetic coupling '
+        '(pairwise r_b between mapped categories) and the GSE202011 spatial '
+        'coupling (Spearman correlation of immune scores across Visium spots '
+        'in healthy samples).'
+    )
+
+    doc.add_paragraph(
+        'The Mantel test revealed a significant negative correlation between '
+        'genetic coupling in blood and spatial co-occurrence in skin '
+        '(Mantel r = -0.278, P = 0.003, 10 cell type pairs; Figure 1H). '
+        'This anti-correlation indicates that immune cell types sharing '
+        'genetic regulatory programs in blood (high CIMA r_b) tend to '
+        'spatially segregate in tissue, occupying distinct niches. '
+        'Conversely, cell types with divergent genetic regulation '
+        'co-localize in tissue, likely reflecting complementary functional '
+        'roles. This cross-tissue architectural transfer establishes that '
+        'the genetic coupling topology measured in peripheral blood by CIMA '
+        'has predictive implications for tissue-level spatial organization, '
+        'connecting population-scale eQTL architecture to single-sample '
+        'spatial biology.'
+    )
+
     # -- Cross-method --
     doc.add_heading(
         'Cross-method validation reveals complementary architectural axes',
         level=2)
 
     doc.add_paragraph(
-        'To assess whether HIRA\'s five layers capture independent or '
+        'To assess whether HIRA\'s six layers capture independent or '
         'redundant architectural features, we computed pairwise Spearman '
         'correlations between all cell-type-level metrics (Figure 1F). '
         'DGSA non-additivity showed the strongest disease association '
@@ -428,10 +467,10 @@ def build_document():
     doc.add_heading('Discussion', level=1)
 
     doc.add_paragraph(
-        'We present HIRA, a five-layer framework for characterizing '
+        'We present HIRA, a six-layer framework for characterizing '
         'the regulatory architecture of the human immune system from '
         'published atlas data, validated on independent spatial '
-        'transcriptomics tissue samples. Our results establish four '
+        'transcriptomics tissue samples. Our results establish five '
         'principal findings.'
     )
 
@@ -486,6 +525,19 @@ def build_document():
     )
 
     doc.add_paragraph(
+        'Fifth, the STRATA-Atlas cross-tissue integration reveals a '
+        'fundamental organizing principle: immune cell types that share '
+        'genetic regulatory programs in blood (high eQTL coupling) tend to '
+        'spatially segregate in tissue (Mantel r = -0.278, P = 0.003). '
+        'This anti-correlation suggests that genetically similar cell types '
+        'occupy complementary rather than overlapping tissue niches, '
+        'consistent with a model where genetic coupling reflects shared '
+        'developmental origin while spatial organization reflects '
+        'functional specialization. This finding bridges population '
+        'genetics and spatial biology through architectural analysis.'
+    )
+
+    doc.add_paragraph(
         'Several limitations should be noted. The CIMA-based layers of '
         'HIRA operate on published summary statistics; access to '
         'individual-level data would enable permutation-based significance '
@@ -536,8 +588,13 @@ def build_document():
         'cis-xQTLs (71,530 cis-eQTLs, 151,875 cis-caQTLs) with effect '
         'sizes (slope), standard errors, and P-values. Table S15 provided '
         '2,085 SMR pleiotropic associations across 68 cell types and '
-        'multiple disease/trait categories. No individual-level or raw '
-        'sequencing data were used.'
+        'multiple disease/trait categories. For STRATA and STRATA-Atlas '
+        'validation, 30 Visium spatial transcriptomics samples from '
+        'GSE202011 (Castillo et al., Sci Immunol 2023) were used, '
+        'comprising psoriasis lesional (n=14), non-lesional (n=9), and '
+        'healthy skin (n=7) with cell2location deconvolution and immune '
+        'gene signature scores [8]. No individual-level or raw sequencing '
+        'data were used.'
     )
 
     doc.add_heading('TOPPLE: Regulon stability analysis', level=2)
@@ -615,6 +672,23 @@ def build_document():
         'three-group comparison used Kruskal-Wallis H test.'
     )
 
+    doc.add_heading('STRATA-Atlas: Cross-tissue integration', level=2)
+    doc.add_paragraph(
+        'CIMA L4 cell types were mapped to GSE202011 immune categories '
+        'using lineage-based many-to-one aggregation (e.g., 13 CIMA CD4 '
+        'subtypes to CD4_Tconv; 4 classical monocyte subtypes to '
+        'Macrophage_M1). For each mapped category, CIMA architectural '
+        'metrics (TOPPLE RI, SICAI mean r_b, DGSA non-additivity) were '
+        'averaged across constituent subtypes. CIMA genetic coupling was '
+        'computed as the mean pairwise r_b between all CIMA subtypes '
+        'belonging to different mapped categories. GSE202011 spatial '
+        'coupling was computed as the Spearman correlation of immune '
+        'scores across spots in healthy samples. The Mantel test '
+        '(9,999 permutations) assessed the correlation between the '
+        'upper triangles of the CIMA genetic and GSE202011 spatial '
+        'coupling matrices.'
+    )
+
     doc.add_heading('Statistical analysis', level=2)
     doc.add_paragraph(
         'All correlations were assessed using Spearman rank correlation. '
@@ -633,7 +707,7 @@ def build_document():
     doc.add_heading('Figure Legends', level=1)
 
     doc.add_heading('Figure 1. HIRA: Multi-scale architectural analysis of '
-                    'the human immune system (5 layers).', level=2)
+                    'the human immune system (6 layers, 2 datasets).', level=2)
 
     doc.add_paragraph(
         '(A) TOPPLE stability ranking of the top 15 stabilizer eRegulons '
@@ -667,7 +741,24 @@ def build_document():
     )
 
     doc.add_paragraph(
-        '(E) STRATA: Mean stabilizer TF expression across psoriasis '
+        '(E) IPA: Violin plots of |log2 fold change| (sex difference) '
+        'for stabilizer, neutral, and destabilizer regulons. Stabilizers '
+        'show 3.2-fold lower sex-linked variation than destabilizers '
+        '(median 0.018 vs 0.057, Mann-Whitney P = 4.4 x 10^-218), '
+        'confirming that structurally critical regulons are buffered '
+        'against acute demographic perturbation.'
+    )
+
+    doc.add_paragraph(
+        '(F) Cross-method Spearman correlation matrix between four '
+        'cell-type-level metrics: TOPPLE RI, SICAI mean r_b, DGSA '
+        'non-additivity, and disease association count. Cells show '
+        'Spearman rho with significance stars. DGSA non-additivity '
+        'and disease count show the strongest correlation (rho = 0.719).'
+    )
+
+    doc.add_paragraph(
+        '(G) STRATA: Mean stabilizer TF expression across psoriasis '
         'Visium samples (GSE202011), stratified by disease status. '
         'Lesional skin shows significant upregulation of TOPPLE '
         'stabilizers compared to healthy skin (Mann-Whitney '
@@ -677,28 +768,13 @@ def build_document():
     )
 
     doc.add_paragraph(
-        '(F) STRATA: Compositional coupling strength (mean absolute '
-        'Spearman correlation among 25 cell types across spots) by '
-        'disease status. Lesional skin shows a trend toward reduced '
-        'coupling (P = 0.079), suggesting partial disruption of '
-        'tissue cell-type co-occurrence patterns in psoriasis.'
-    )
-
-    doc.add_paragraph(
-        '(G) Cross-method scatter plot showing DGSA mean non-additivity '
-        'versus TOPPLE mean redistribution index per cell type. '
-        'Spearman rho = 0.246, P = 0.060, n = 59 cell types, indicating '
-        'a borderline positive trend between genetic architecture and '
-        'regulon stability.'
-    )
-
-    doc.add_paragraph(
-        '(H) Cross-method Spearman correlation matrix between four '
-        'cell-type-level metrics: TOPPLE RI, SICAI mean r_b, DGSA '
-        'non-additivity, and disease association count. Cells show '
-        'Spearman rho with significance stars (* P < 0.05, ** P < 0.01, '
-        '*** P < 0.001). DGSA non-additivity and disease count show '
-        'the strongest correlation (rho = 0.719).'
+        '(H) STRATA-Atlas: Combined coupling heatmap comparing CIMA '
+        'blood genetic coupling (upper triangle, eQTL r_b) with '
+        'GSE202011 skin spatial co-occurrence (lower triangle, Spearman '
+        'correlation of immune scores) across 10 mapped immune cell '
+        'categories. Mantel test reveals significant anti-correlation '
+        '(r = -0.278, P = 0.003), indicating that genetically coupled '
+        'blood cell types spatially segregate in tissue.'
     )
 
     # ════════════════════════════════════════════════════════════════════
@@ -730,8 +806,9 @@ def build_document():
         'Franceschi C, et al. Inflammaging: a new immune-metabolic viewpoint '
         'for age-related diseases. Nat Rev Endocrinol 14, 576-590 (2018).',
 
-        'Gao Y, et al. Spatial transcriptomics reveals distinct patterns of '
-        'fibroblast heterogeneity in psoriasis. Nat Commun (2022). GSE202011.',
+        'Castillo RL, et al. Spatial transcriptomics stratifies psoriasis '
+        'disease severity by emergent cellular ecosystems. Sci Immunol 8, '
+        'eabq7991 (2023). GSE202011.',
     ]
 
     for i, ref in enumerate(refs, 1):
