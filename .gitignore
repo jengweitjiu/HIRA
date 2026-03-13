@@ -1,14 +1,27 @@
-# Large data files (supplementary tables from CIMA)
+# Data directories (large files, not tracked)
+data/raw/
+data/visium/
+data/processed/
 data/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
 __MACOSX/
 
-# Zip archives
+# Archives
 *.zip
 
 # Claude Code local state
 .claude/
 
-# Python
-__pycache__/
-*.pyc
-.venv/
+# Large files (>50MB)
+*.h5
+*.h5ad
