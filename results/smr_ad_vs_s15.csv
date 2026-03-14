@@ -1,0 +1,6 @@
+celltype,n_denovo_tested,n_denovo_p1e4,n_denovo_bonf,n_s15_total,n_s15_heidi_pass,gene_overlap,overlap_genes
+CD4_Tn_CCR7,4239,8,3,4,1,1,LIME1
+CD8_Tn_CCR7,3207,4,2,1,1,0,
+CD4_Tfh-like_CXCR5,2337,0,0,3,3,0,
+cMono_CD14,2277,1,1,14,13,1,HELZ2
+Mature_NK_dim_FCGR3A,2149,4,3,6,5,1,IL18R1
