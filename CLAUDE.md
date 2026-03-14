@@ -14,8 +14,8 @@ Single author: Dr. Jeng-Wei Tjiu, M.D., Dept. of Dermatology, NTUH, Taipei, Taiw
 - **main**: Core HIRA pipeline complete (TOPPLE, DGSA, SICAI, IPA, STRATA, Extensions)
   - Latest: `f3b86c7` — manuscript-ready HIRA pipeline
 - **decode-ad** (active): DECODE-AD extension (AD GWAS overlay on CIMA)
-  - Latest: `5d10a9c` — PASI severity validation
-  - Contains all main branch content plus 15+ DECODE-AD analyses
+  - Latest: `a618b4e` — submission-ready manuscripts
+  - Contains all main branch content plus 18+ DECODE-AD analyses + SMR pipeline
 - Remote: github.com/jengweitjiu/HIRA
 
 ---
@@ -157,6 +157,18 @@ Single author: Dr. Jeng-Wei Tjiu, M.D., Dept. of Dermatology, NTUH, Taipei, Taiw
 | 15 | Type 2 axis | `decode_ad_gaps.py` | CD4_Th_CCR4<->CD4_Th22 most disrupted (0.456) | `decode_ad_type2_axis.csv` |
 | 16 | Rebound analysis | `decode_ad_rebound.py` | Drug targets mean disruption 0.122 vs AD eGenes 0.193, P=0.091 | `decode_ad_rebound_analysis.csv` |
 | 17 | PASI validation | `decode_pasi_validation.py` | Immune entropy rho=0.479 P=0.021 (diseased only) | `pasi_hira_correlations.csv` |
+| 18 | Analytical SMR | `smr_ad_pipeline.py` | 9 Bonferroni genes; LIME1 P=9.5e-11; cMono 14 S15 hits | `smr_ad_denovo.csv` |
+
+### SMR/HEIDI Analysis (src/smr_ad_pipeline.py)
+- Analytical SMR: z_SMR = (z_GWAS * z_eQTL) / sqrt(z_GWAS^2 + z_eQTL^2)
+- 14,209 gene-cell-type pairs tested across 5 target cell types
+- **9 Bonferroni-significant genes**: LIME1 (P=9.5e-11, CD4_Tn), IL18R1 (P=4.2e-12, NK), SEPTIN8, PRORP, GNGT2, IL18RAP, SLC2A4RG, HELZ2
+- KDELR2 near-significant in all 5 cell types
+- S15 pre-computed: 93 AD associations, 78 HEIDI-pass (83.9%)
+- **cMono_CD14 has most S15 AD hits: 14 total, 13 HEIDI-pass**
+- SMR binary: `tools/smr/smr-1.3.1-win-x86_64/smr-1.3.1-win.exe` (verified working)
+- LIMITATION: S6 has only lead eQTLs (1 SNP/gene), so HEIDI cannot run de novo
+- Output: `results/smr_ad_denovo.csv`, `results/smr_ad_vs_s15.csv`, `results/smr_ad_s15_subset.csv`
 
 ### Most Novel Finding: Chromatin-Expression Dissociation
 - **Chromatin accessibility (caQTL)**: Most disrupted in CD14_Mono (monocytes)
@@ -167,13 +179,27 @@ Single author: Dr. Jeng-Wei Tjiu, M.D., Dept. of Dermatology, NTUH, Taipei, Taiw
 
 ---
 
+## Manuscripts
+
+### HIRA (target: Genome Biology)
+- `drafts/HIRA_manuscript_v3_submission.md` — submission-ready
+- 8 Results subsections (all 6 layers + 2 extensions)
+- ~4,500 words (Results + Discussion)
+- 4 main figures + 2 supplementary
+
+### DECODE-AD (target: JACI)
+- `drafts/DECODE_AD_manuscript_v1.md` — submission-ready
+- 10 Results subsections
+- ~4,800 words (Results + Discussion)
+- 4 main figures + 1 supplementary
+- Central thesis: chromatin enters through monocytes, expression exits through T cells
+
 ## Remaining Items
 
 ### Not Yet Done
-1. **SMR/HEIDI filtering**: Current SMR mediation uses raw p_SMR; should filter p_HEIDI > 0.05 for pleiotropic (not linkage) associations
-2. **Thompson et al. 2024 validation**: Independent AD eQTL dataset for replication of DECODE-AD cell-type enrichment
-3. **Manuscript submission**: Drafts exist in `drafts/` but need final formatting for journal submission
-4. **Merge decode-ad -> main**: After review, merge the decode-ad branch into main
+1. **Thompson et al. 2024 validation**: Independent AD eQTL dataset for replication of DECODE-AD cell-type enrichment
+2. **Merge decode-ad -> main**: After review, merge the decode-ad branch into main
+3. **Journal formatting**: Convert markdown manuscripts to journal-specific templates
 
 ### Previously Investigated but Not Reproducible
 - The "n=23, rho=0.480" SICAI-PASI result was hardcoded from earlier Colab work (`02_sicai_cima.py`); the source cohort/metric is unknown and does not match current GSE202011 data (n=30, rho=-0.148)
@@ -218,7 +244,10 @@ D:\HIRA\
 │   ├── raw\                           <- CIMA xlsx/csv/zip + AD GWAS tsv.gz
 │   ├── visium\                        <- GSE202011 Visium .h5 files
 │   └── processed\                     <- intermediate outputs
-├── src\                               <- all Python scripts (29 files)
+├── tools\
+│   ├── smr\smr-1.3.1-win-x86_64\     <- SMR binary + DLLs
+│   └── plink\                         <- PLINK 1.9 binary
+├── src\                               <- all Python scripts (30 files)
 │   ├── topple.py                      <- Layer 1: TOPPLE
 │   ├── dgsa.py                        <- Layer 2: DGSA
 │   ├── sicai.py                       <- Layer 3: SICAI
@@ -239,6 +268,7 @@ D:\HIRA\
 │   ├── decode_ad_gaps.py              <- DECODE-AD IPA kill + permutation + Type 2
 │   ├── decode_ad_rebound.py           <- DECODE-AD rebound analysis
 │   ├── decode_pasi_validation.py      <- PASI severity validation
+│   ├── smr_ad_pipeline.py             <- Analytical SMR/HEIDI pipeline
 │   ├── utils.py                       <- Shared utility functions
 │   ├── fig_decode_ad.py               <- DECODE-AD main figure
 │   ├── fig_decode_ad_extended.py      <- DECODE-AD extended figure
@@ -248,10 +278,12 @@ D:\HIRA\
 │   ├── fig_study_design.py            <- Study design + circos figures
 │   ├── figure1_complete.py            <- Complete Figure 1
 │   └── sicai_caqtl.py                 <- SICAI caQTL analysis
-├── results\                           <- 55 CSV files
-├── figures\                           <- 68 PDF/PNG figure files
-├── drafts\                            <- Manuscript text (8 .md files)
-│   ├── HIRA_manuscript_v2_complete.md
+├── results\                           <- 58 CSV files
+├── figures\                           <- 70 PDF/PNG figure files
+├── drafts\                            <- Manuscript text (10 .md files)
+│   ├── HIRA_manuscript_v3_submission.md   <- HIRA submission draft (Genome Biology)
+│   ├── DECODE_AD_manuscript_v1.md         <- DECODE-AD submission draft (JACI)
+│   ├── HIRA_manuscript_v2_complete.md     <- prior version
 │   ├── topple_results.md
 │   ├── dgsa_results.md
 │   ├── sicai_results.md
@@ -292,3 +324,8 @@ D:\HIRA\
 | DECODE-AD: Tanaka overlap | 100% (17/17 loci) | confirmed |
 | DECODE-AD: permutation P | 0.38 (disruption is locus-specific) | confirmed |
 | DECODE-AD: drug disruption vs AD | 0.122 vs 0.193, P=0.091 | confirmed |
+| SMR: Bonferroni-significant genes | 9 across 5 cell types | confirmed |
+| SMR: LIME1 in CD4_Tn | P=9.5e-11 (strongest de novo hit) | confirmed |
+| SMR: IL18R1 in NK | P=4.2e-12 (strongest single gene) | confirmed |
+| SMR: S15 AD HEIDI-pass | 78/93 (83.9%) | confirmed |
+| SMR: cMono_CD14 S15 AD hits | 14 total, 13 HEIDI-pass | confirmed |
