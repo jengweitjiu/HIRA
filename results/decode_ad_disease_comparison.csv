@@ -1,0 +1,218 @@
+celltype,n_associations,trait,trait_name,n_eQTL,n_caQTL
+Bn_TCL1A,1,AD,Atopic Dermatitis,0,1
+CD4_CTL_GZMH,1,AD,Atopic Dermatitis,1,0
+CD4_Tcm_CXCR5,1,AD,Atopic Dermatitis,1,0
+CD4_Tcm_IFI44L,1,AD,Atopic Dermatitis,1,0
+CD4_Tem_CCR7neg,1,AD,Atopic Dermatitis,1,0
+CD4_Tfh-like_CXCR5,3,AD,Atopic Dermatitis,2,1
+CD4_Th1-like_GZMK,2,AD,Atopic Dermatitis,0,2
+CD4_Th17-like_RORC,2,AD,Atopic Dermatitis,1,1
+CD4_Th_LMNA,2,AD,Atopic Dermatitis,2,0
+CD4_Tn_CCR7,4,AD,Atopic Dermatitis,2,2
+CD4_Tn_LIMS1,1,AD,Atopic Dermatitis,1,0
+CD4_Treg_FCRL3,1,AD,Atopic Dermatitis,1,0
+CD4_Treg_FOXP3,2,AD,Atopic Dermatitis,1,1
+CD8_CTL_GZMB,5,AD,Atopic Dermatitis,0,5
+CD8_CTL_GZMK,1,AD,Atopic Dermatitis,1,0
+CD8_Tcm_IFI44L,1,AD,Atopic Dermatitis,1,0
+CD8_Tem_CCR7neg,3,AD,Atopic Dermatitis,1,2
+CD8_Tn_CCR7,1,AD,Atopic Dermatitis,1,0
+DC2_CD1C,5,AD,Atopic Dermatitis,1,4
+MAIT_SLC4A10,4,AD,Atopic Dermatitis,3,1
+Mature_NK_dim_FCGR3A,6,AD,Atopic Dermatitis,2,4
+NKT_NCR1,6,AD,Atopic Dermatitis,1,5
+Proliferative_T_MKI67,1,AD,Atopic Dermatitis,1,0
+Terminal_NK_dim_CD160neg,1,AD,Atopic Dermatitis,1,0
+Transitional_NK_GZMK,2,AD,Atopic Dermatitis,0,2
+cMono_CD14,14,AD,Atopic Dermatitis,1,13
+cMono_IFI44L,3,AD,Atopic Dermatitis,0,3
+cMono_IL1B,1,AD,Atopic Dermatitis,1,0
+gdT2_GZMH,1,AD,Atopic Dermatitis,1,0
+gdT2_GZMK,2,AD,Atopic Dermatitis,2,0
+gdT2_IL12RB2,1,AD,Atopic Dermatitis,0,1
+intMono_GFRA2,3,AD,Atopic Dermatitis,0,3
+ncMono_C1QA,1,AD,Atopic Dermatitis,0,1
+ncMono_FCGR3A,5,AD,Atopic Dermatitis,1,4
+pDC_IRF4,4,AD,Atopic Dermatitis,1,3
+Atypical_Bm_ITGAX,2,As,Asthma,1,1
+Bn_IFIT3,3,As,Asthma,3,0
+Bn_IL6,2,As,Asthma,2,0
+Bn_TCL1A,5,As,Asthma,3,2
+CD4_CTL_GZMH,6,As,Asthma,2,4
+CD4_Tcm_CXCR5,5,As,Asthma,5,0
+CD4_Tcm_IFI44L,6,As,Asthma,3,3
+CD4_Tem_CCR7neg,5,As,Asthma,3,2
+CD4_Tfh-like_CXCR5,9,As,Asthma,6,3
+CD4_Th1-like_GZMK,6,As,Asthma,6,0
+CD4_Th17-like_RORC,6,As,Asthma,5,1
+CD4_Th22-like_CCR10,3,As,Asthma,3,0
+CD4_Th_CCR4,1,As,Asthma,1,0
+CD4_Th_CR1,1,As,Asthma,1,0
+CD4_Th_LMNA,3,As,Asthma,2,1
+CD4_Th_TNFRSF11A,4,As,Asthma,4,0
+CD4_Tn_CCR7,12,As,Asthma,7,5
+CD4_Tn_CXCR5,3,As,Asthma,3,0
+CD4_Tn_LIMS1,2,As,Asthma,2,0
+CD4_Tn_SOX4,1,As,Asthma,1,0
+CD4_Tr1_IL10,2,As,Asthma,2,0
+CD4_Treg_FCRL3,4,As,Asthma,4,0
+CD4_Treg_FOXP3,4,As,Asthma,3,1
+CD8_CTL_GZMB,7,As,Asthma,4,3
+CD8_CTL_GZMK,2,As,Asthma,2,0
+CD8_CTL_IFI44L,1,As,Asthma,1,0
+CD8_Tcm_IFI44L,3,As,Asthma,3,0
+CD8_Tem_CCR7neg,8,As,Asthma,5,3
+CD8_Tn_CCR7,8,As,Asthma,3,5
+CD8_Tn_SOX4,1,As,Asthma,1,0
+DC1_CLEC9A,1,As,Asthma,1,0
+DC2_CD1C,7,As,Asthma,4,3
+HSPC_CD34,1,As,Asthma,1,0
+ILC2_IL2RA,1,As,Asthma,1,0
+MAIT_SLC4A10,11,As,Asthma,5,6
+Mature_NK_dim_FCGR3A,10,As,Asthma,6,4
+NKT_IFNG,1,As,Asthma,1,0
+NKT_NCR1,6,As,Asthma,2,4
+NK_bright_XCL1,2,As,Asthma,2,0
+Plasma_IGHA1,2,As,Asthma,1,1
+Plasma_IGHG1,1,As,Asthma,1,0
+Proliferative_NK_MKI67,1,As,Asthma,1,0
+Proliferative_T_MKI67,2,As,Asthma,2,0
+Switched_Bm_IGHDneg,4,As,Asthma,3,1
+Switched_Bm_IGHE,4,As,Asthma,2,2
+Switched_activated_Bm_CD86,2,As,Asthma,2,0
+Terminal_NK_dim_CD160neg,3,As,Asthma,3,0
+Transitional_B_MME,3,As,Asthma,2,1
+Transitional_NK_GZMK,3,As,Asthma,2,1
+Unswitched_Bm_CD1C,5,As,Asthma,4,1
+Unswitched_Bm_IL6,1,As,Asthma,1,0
+cMono_CD14,9,As,Asthma,3,6
+cMono_CXCL10,1,As,Asthma,1,0
+cMono_IFI44L,5,As,Asthma,2,3
+cMono_IL1B,1,As,Asthma,1,0
+gdT1_TRDV1,1,As,Asthma,1,0
+gdT2_GZMH,6,As,Asthma,3,3
+gdT2_GZMK,1,As,Asthma,1,0
+gdT2_IL12RB2,7,As,Asthma,5,2
+intMono_GFRA2,3,As,Asthma,0,3
+ncMono_C1QA,3,As,Asthma,2,1
+ncMono_FCGR3A,5,As,Asthma,3,2
+ncMono_IFIT1,1,As,Asthma,1,0
+pDC_IRF4,3,As,Asthma,2,1
+pre-Switched_Bm_JAM3,3,As,Asthma,2,1
+Atypical_Bm_ITGAX,7,RA,Rheumatoid Arthritis,6,1
+Bn_IFIT3,1,RA,Rheumatoid Arthritis,1,0
+Bn_IL6,3,RA,Rheumatoid Arthritis,3,0
+Bn_TCL1A,21,RA,Rheumatoid Arthritis,7,14
+CD4_CTL_GZMH,3,RA,Rheumatoid Arthritis,3,0
+CD4_Tcm_CXCR5,4,RA,Rheumatoid Arthritis,4,0
+CD4_Tcm_IFI44L,4,RA,Rheumatoid Arthritis,3,1
+CD4_Tem_CCR7neg,7,RA,Rheumatoid Arthritis,4,3
+CD4_Tfh-like_CXCR5,10,RA,Rheumatoid Arthritis,5,5
+CD4_Th1-like_GZMK,11,RA,Rheumatoid Arthritis,6,5
+CD4_Th17-like_RORC,7,RA,Rheumatoid Arthritis,4,3
+CD4_Th22-like_CCR10,4,RA,Rheumatoid Arthritis,4,0
+CD4_Th_CCR4,4,RA,Rheumatoid Arthritis,4,0
+CD4_Th_CR1,1,RA,Rheumatoid Arthritis,1,0
+CD4_Th_LMNA,3,RA,Rheumatoid Arthritis,3,0
+CD4_Th_TNFRSF11A,4,RA,Rheumatoid Arthritis,4,0
+CD4_Tn_CCR7,10,RA,Rheumatoid Arthritis,5,5
+CD4_Tn_CXCR5,2,RA,Rheumatoid Arthritis,2,0
+CD4_Tn_LIMS1,3,RA,Rheumatoid Arthritis,3,0
+CD4_Tn_SOX4,4,RA,Rheumatoid Arthritis,4,0
+CD4_Tr1_IL10,2,RA,Rheumatoid Arthritis,2,0
+CD4_Treg_FCRL3,5,RA,Rheumatoid Arthritis,5,0
+CD4_Treg_FOXP3,4,RA,Rheumatoid Arthritis,3,1
+CD8_CTL_GZMB,7,RA,Rheumatoid Arthritis,5,2
+CD8_CTL_GZMK,3,RA,Rheumatoid Arthritis,3,0
+CD8_Tcm_IFI44L,3,RA,Rheumatoid Arthritis,3,0
+CD8_Tem_CCR7neg,5,RA,Rheumatoid Arthritis,4,1
+CD8_Tn_CCR7,10,RA,Rheumatoid Arthritis,6,4
+CD8_Tn_SOX4,2,RA,Rheumatoid Arthritis,2,0
+DC1_CLEC9A,1,RA,Rheumatoid Arthritis,1,0
+DC2_CD1C,5,RA,Rheumatoid Arthritis,4,1
+DC_CSF2RA,1,RA,Rheumatoid Arthritis,1,0
+HSPC_CD34,1,RA,Rheumatoid Arthritis,1,0
+ILC2_IL2RA,1,RA,Rheumatoid Arthritis,1,0
+Immature_T_CABP4,2,RA,Rheumatoid Arthritis,2,0
+MAIT_SLC4A10,10,RA,Rheumatoid Arthritis,5,5
+MK_GP9,1,RA,Rheumatoid Arthritis,1,0
+Mature_NK_dim_FCGR3A,10,RA,Rheumatoid Arthritis,4,6
+NKT_NCR1,10,RA,Rheumatoid Arthritis,3,7
+NK_bright_XCL1,4,RA,Rheumatoid Arthritis,4,0
+Plasma_IGHA1,1,RA,Rheumatoid Arthritis,1,0
+Plasma_IGHG1,1,RA,Rheumatoid Arthritis,1,0
+Proliferative_NK_MKI67,1,RA,Rheumatoid Arthritis,1,0
+Proliferative_T_MKI67,3,RA,Rheumatoid Arthritis,3,0
+Switched_Bm_IGHDneg,12,RA,Rheumatoid Arthritis,4,8
+Switched_Bm_IGHE,4,RA,Rheumatoid Arthritis,4,0
+Switched_activated_Bm_CD86,8,RA,Rheumatoid Arthritis,6,2
+Terminal_NK_dim_CD160neg,2,RA,Rheumatoid Arthritis,2,0
+Transitional_B_MME,10,RA,Rheumatoid Arthritis,4,6
+Transitional_NK_GZMK,4,RA,Rheumatoid Arthritis,4,0
+Unswitched_Bm_CD1C,6,RA,Rheumatoid Arthritis,5,1
+cMono_CD14,6,RA,Rheumatoid Arthritis,4,2
+cMono_IFI44L,4,RA,Rheumatoid Arthritis,1,3
+cMono_IL1B,1,RA,Rheumatoid Arthritis,1,0
+gdT1_TRDV1,3,RA,Rheumatoid Arthritis,3,0
+gdT2_GZMH,4,RA,Rheumatoid Arthritis,4,0
+gdT2_GZMK,3,RA,Rheumatoid Arthritis,3,0
+gdT2_IL12RB2,9,RA,Rheumatoid Arthritis,6,3
+intMono_GFRA2,2,RA,Rheumatoid Arthritis,0,2
+ncMono_FCGR3A,3,RA,Rheumatoid Arthritis,1,2
+pDC_IRF4,6,RA,Rheumatoid Arthritis,4,2
+pre-Switched_Bm_JAM3,5,RA,Rheumatoid Arthritis,5,0
+Atypical_Bm_ITGAX,3,GD,Graves' Disease,1,2
+Bn_IFIT3,1,GD,Graves' Disease,1,0
+Bn_IL6,2,GD,Graves' Disease,2,0
+Bn_TCL1A,8,GD,Graves' Disease,3,5
+CD4_CTL_GZMH,2,GD,Graves' Disease,1,1
+CD4_Tcm_CXCR5,2,GD,Graves' Disease,2,0
+CD4_Tcm_IFI44L,3,GD,Graves' Disease,1,2
+CD4_Tem_CCR7neg,4,GD,Graves' Disease,2,2
+CD4_Tfh-like_CXCR5,8,GD,Graves' Disease,4,4
+CD4_Th1-like_GZMK,7,GD,Graves' Disease,4,3
+CD4_Th17-like_RORC,8,GD,Graves' Disease,4,4
+CD4_Th_CCR4,1,GD,Graves' Disease,1,0
+CD4_Th_CR1,1,GD,Graves' Disease,1,0
+CD4_Th_TNFRSF11A,2,GD,Graves' Disease,2,0
+CD4_Tn_CCR7,12,GD,Graves' Disease,3,9
+CD4_Tn_CXCR5,1,GD,Graves' Disease,1,0
+CD4_Tn_LIMS1,1,GD,Graves' Disease,1,0
+CD4_Tn_SOX4,1,GD,Graves' Disease,1,0
+CD4_Treg_FCRL3,1,GD,Graves' Disease,1,0
+CD4_Treg_FOXP3,2,GD,Graves' Disease,2,0
+CD8_CTL_GZMB,5,GD,Graves' Disease,1,4
+CD8_CTL_GZMK,1,GD,Graves' Disease,1,0
+CD8_Tcm_IFI44L,3,GD,Graves' Disease,3,0
+CD8_Tem_CCR7neg,5,GD,Graves' Disease,1,4
+CD8_Tn_CCR7,13,GD,Graves' Disease,4,9
+CD8_Tn_SOX4,1,GD,Graves' Disease,1,0
+DC1_CLEC9A,1,GD,Graves' Disease,1,0
+DC2_CD1C,2,GD,Graves' Disease,2,0
+HSPC_CD34,1,GD,Graves' Disease,1,0
+Immature_T_CABP4,1,GD,Graves' Disease,1,0
+MAIT_SLC4A10,3,GD,Graves' Disease,1,2
+MK_GP9,1,GD,Graves' Disease,1,0
+Mature_NK_dim_FCGR3A,3,GD,Graves' Disease,1,2
+NKT_NCR1,6,GD,Graves' Disease,1,5
+NK_bright_XCL1,2,GD,Graves' Disease,2,0
+Plasma_IGHA1,2,GD,Graves' Disease,2,0
+Plasma_IGHG1,1,GD,Graves' Disease,1,0
+Proliferative_T_MKI67,1,GD,Graves' Disease,1,0
+Switched_Bm_IGHDneg,4,GD,Graves' Disease,1,3
+Switched_Bm_IGHE,1,GD,Graves' Disease,1,0
+Switched_activated_Bm_CD86,4,GD,Graves' Disease,3,1
+Terminal_NK_dim_CD160neg,2,GD,Graves' Disease,2,0
+Transitional_B_MME,6,GD,Graves' Disease,2,4
+Transitional_NK_GZMK,2,GD,Graves' Disease,2,0
+Unswitched_Bm_CD1C,3,GD,Graves' Disease,1,2
+cMono_CD14,16,GD,Graves' Disease,3,13
+cMono_IFI44L,2,GD,Graves' Disease,1,1
+gdT1_TRDV1,1,GD,Graves' Disease,1,0
+gdT2_GZMH,2,GD,Graves' Disease,1,1
+gdT2_GZMK,1,GD,Graves' Disease,1,0
+gdT2_IL12RB2,3,GD,Graves' Disease,1,2
+intMono_GFRA2,1,GD,Graves' Disease,0,1
+ncMono_C1QA,2,GD,Graves' Disease,2,0
+ncMono_FCGR3A,3,GD,Graves' Disease,2,1
+pre-Switched_Bm_JAM3,2,GD,Graves' Disease,1,1

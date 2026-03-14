@@ -1,0 +1,2 @@
+gene,drug,n_celltypes,mean_abs_slope,top_celltype,top_abs_slope,all_celltypes
+IFNG,Emapalumab (anti-IFNg),1,0.27324358,gdT2_IL12RB2,0.27324358,gdT2_IL12RB2
