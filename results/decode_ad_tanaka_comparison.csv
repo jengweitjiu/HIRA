@@ -1,0 +1,8 @@
+metric,european,japanese
+n_loci,25.0,17.0
+eqtl_overlap,23.0,17.0
+caqtl_overlap,24.0,17.0
+eqtl_rate,0.92,1.0
+caqtl_rate,0.96,1.0
+n_eqtl_genes,195.0,114.0
+n_eqtl_celltypes,69.0,68.0
