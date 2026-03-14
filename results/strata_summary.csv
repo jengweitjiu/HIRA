@@ -1,0 +1,4 @@
+condition,n_samples,total_spots,mean_stab_expr,mean_dest_expr,mean_ratio,std_ratio
+lesional,14,11122,0.25720412,0.073612586,3.418606,0.30099195
+non-lesional,9,6305,0.102697775,0.036300037,2.8522131,0.2848573
+healthy,7,6800,0.077910915,0.02675296,2.8764408,0.29519117
