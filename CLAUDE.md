@@ -23,10 +23,14 @@ Single author: Dr. Jeng-Wei Tjiu, M.D., Dept. of Dermatology, NTUH, Taipei, Taiw
 | table_s8.xlsx | `cis_eQTL` | Pairwise eQTL sharing | reference_cell_type, query_celltype, rb, pi1 | 4,692 | SICAI |
 | table_s8.xlsx | `cis_caQTL` | Pairwise caQTL sharing | reference_cell_type, query_celltype, rb, pi1 | 1,722 | **Extension #1** |
 | table_s15.xlsx | `Sheet1` | SMR pleiotropic associations | Gene, celltype, trait, trait_category, p_SMR, p_HEIDI, b_SMR | 2,085 | Disease correlation |
+| table_s3.zip -> CIMA_Table_S3.csv | — | Peak x cell-type binary activity | Peaks (index), 65 cell-type columns (TRUE/FALSE) | 338,036 | **Extension #3** |
+| table_s4.zip -> CIMA_Table_S4.csv | — | SCENIC+ GRN TF->Region->Gene | TF, Region, Gene, R2G_importance, R2G_rho, Consensus_name | 469,157 | **Extension #3** |
 
 **NOTE:** S5 Age_Correlation is wide-format (each column is CellType_eRegulon + CellType_eRegulon_Pvalue).
 S6 is a single CSV inside a zip; filter by `analysis` column for eQTL vs caQTL.
 S8 caQTL has only 1,722 rows (42 cell types vs 69 for eQTL).
+S4 has 133,574 unique Region-Gene pairs (84,625 regions -> 13,645 genes).
+S3 has 65 cell types (vs S5's 61 for eRegulons and S8's 69 for eQTL).
 
 ## Six HIRA Layers
 1. **TOPPLE** (src/topple.py): Regulon stability via leave-one-out JSD perturbation
@@ -51,8 +55,10 @@ S8 caQTL has only 1,722 rows (42 cell types vs 69 for eQTL).
 - Mantel eQTL vs caQTL r_b: r = 0.482, P = 0.0001
 
 ### Extension #3: Enhancer-Driven Coupling Network (src/ext3_enhancer_coupling.py) -- DONE
-- 133,574 unique Region-Gene pairs, mean Jaccard = 0.406
-- Three-way Mantel: eQTL-caQTL (0.482), eQTL-Jaccard (0.388), caQTL-Jaccard (0.566)
+- Source: S4 (SCENIC+ GRN, 469K rows) + S3 (338K peaks x 65 cell types binary)
+- 133,574 unique Region-Gene pairs, mean ~43K active per cell type
+- Jaccard coupling matrix: 65 x 65, mean Jaccard = 0.406
+- Three-way Mantel: eQTL rb vs caQTL rb (0.482), eQTL vs Jaccard (0.388), caQTL vs Jaccard (0.566)
 - Stabilizers have 2.4x more target genes (417 vs 175, P=7.9e-4)
 - Regulatory breadth vs TOPPLE RI: rho=0.283 (P=4.3e-5)
 
