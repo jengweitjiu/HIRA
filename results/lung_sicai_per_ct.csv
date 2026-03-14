@@ -1,0 +1,39 @@
+cell_type,mean_coupling,lineage
+Systemic venous,0.8690558102532345,Endothelial
+Venule,0.8666805609272943,Endothelial
+Arteriole,0.8579683894321573,Endothelial
+aCap,0.857842869280466,Endothelial
+CD4,0.8578024233109653,Immune
+Alveolar FB,0.8546596847796922,Mesenchymal
+NK,0.8535720839916981,Immune
+CD8/NKT,0.8534669213827354,Immune
+Plasma,0.8523233735733482,Immune
+pDC,0.8491102552258217,Immune
+Lymphatic,0.8468302560764506,Endothelial
+gCap,0.8425697308270128,Endothelial
+Adventitial FB,0.8404076200085856,Mesenchymal
+SMC,0.8376931265758225,Mesenchymal
+Mesothelial,0.8373490198189398,Mesenchymal
+B cells,0.8366081237915544,Immune
+KRT5-/KRT17+,0.8322003651404056,Epithelial
+Basal,0.8303288138894199,Epithelial
+Secretory - SCGB1A1+/MUC5B+,0.8281949138020245,Epithelial
+Interstitial macrophage,0.8280758914882801,Immune
+Pericyte,0.8276991590611269,Mesenchymal
+Secretory - SCGB1A1+/SCGB3A2+,0.8270260749764073,Epithelial
+Secretory - SCGB3A2+,0.8267745432661081,Epithelial
+Mast,0.8246909458099885,Immune
+cDC1,0.8245032379289511,Immune
+Transitional AT2,0.8223457496803076,Epithelial
+AT2,0.8196593422149203,Epithelial
+cDC2,0.8115304189556414,Immune
+AT1,0.8103754659161806,Epithelial
+Monocyte,0.808423629687356,Immune
+Proliferating - Epi,0.8082215740965757,Epithelial
+Proliferating - Imm,0.8081766269614381,Immune
+Inflammatory monocyte,0.7992365623270977,Immune
+moDC,0.7960894556930206,Immune
+Monocyte-derived macrophage,0.7875275895822466,Immune
+Alveolar macrophage,0.7851339815582526,Immune
+Differentiating ciliated,0.7813271950874635,Epithelial
+Ciliated,0.7748516181333196,Epithelial

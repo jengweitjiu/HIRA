@@ -1,0 +1,8 @@
+metric,lung,cima_blood
+DGSA mean non-additivity,0.1107,0.8673
+DGSA mean Gini,0.2700,0.1151
+SICAI mean coupling,0.828,0.818
+Within-lineage coupling,0.906,~0.85
+Between-lineage coupling,0.797,~0.79
+N cell types,38,69
+N genes (DGSA),2067,5253
