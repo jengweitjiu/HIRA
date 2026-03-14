@@ -3,6 +3,8 @@
 ## What is this project?
 HIRA is a six-layer analytical framework that extracts architectural insights from
 the Chinese Immune Multi-Omics Atlas (CIMA; Yin et al., Science 2026, DOI: 10.1126/science.adt3130).
+Validated in 3 independent tissues: psoriasis skin (GSE202011 Visium), PASI clinical severity,
+and pig skin rete ridges (Thompson et al. Nature 2026, GSE305111).
 Single author: Dr. Jeng-Wei Tjiu, M.D., Dept. of Dermatology, NTUH, Taipei, Taiwan.
 
 ## Key Constraint
@@ -13,9 +15,12 @@ Single author: Dr. Jeng-Wei Tjiu, M.D., Dept. of Dermatology, NTUH, Taipei, Taiw
 ## Git Branch Status
 - **main**: Core HIRA pipeline complete (TOPPLE, DGSA, SICAI, IPA, STRATA, Extensions)
   - Latest: `f3b86c7` — manuscript-ready HIRA pipeline
-- **decode-ad** (active): DECODE-AD extension (AD GWAS overlay on CIMA)
-  - Latest: `a618b4e` — submission-ready manuscripts
+- **decode-ad**: DECODE-AD extension (AD GWAS overlay on CIMA)
+  - Latest: `461b4a6` — submission-ready manuscripts + SMR
   - Contains all main branch content plus 18+ DECODE-AD analyses + SMR pipeline
+- **thompson-validation** (active): Thompson et al. (Nature 2026) rete ridge validation
+  - Latest: `8a7f02f` — HIRA framework applied to pig skin (GSE305111)
+  - Branched from decode-ad; contains TOPPLE/SICAI/STRATA on independent tissue+species
 - Remote: github.com/jengweitjiu/HIRA
 
 ---
@@ -111,6 +116,18 @@ Single author: Dr. Jeng-Wei Tjiu, M.D., Dept. of Dermatology, NTUH, Taipei, Taiw
   - Top TFs: ELF1 (144 regions), ETS1 (114), FLI1 (92)
 - Output: `results/ext3_regulatory_coupling.csv`, `results/ext3_ad_peak_gene_overlay.csv`
 
+### Thompson et al. Rete Ridge Validation (src/thompson_validation.py) — 3rd Independent Validation
+- Thompson et al. (Nature 2026, DOI: 10.1038/s41586-025-10055-5), GSE305111
+- Pig skin scRNA-seq (P3, 6,128 cells, 19 cell types) + Stereo-seq (37,040 spots)
+- Data: `data/thompson/` — RData + h5ad files from GEO
+- **TOPPLE**: MSX2 (#1 stabilizer), SOX9 (#2), SMAD9 (#4), SMAD1 (#10) — all BMP/skin TFs
+  - CIMA blood stabilizers (HSF1, JUN, FOS) rank bottom (48-64/64) — tissue-specific
+  - Cross-species anti-correlation: rho = -0.404, P = 0.016 (n=35 TFs)
+- **SICAI**: Krt-Krt coupling 0.770 vs Krt-NonKrt 0.656, P = 7.85e-8
+- **STRATA**: Keratin Moran's I = 0.36 vs BMP pathway 0.008 (spatial structure vs diffuse signaling)
+- Key insight: TOPPLE independently identifies BMP pathway (the paper's central finding) as the dominant architectural stabilizer in pig skin, without prior biological knowledge
+- Output: `results/thompson_topple_tf.csv`, `results/thompson_sicai_coupling.csv`, `results/thompson_strata_spatial.csv`, `figures/fig_thompson_validation.pdf`
+
 ### PASI Severity Validation (src/decode_pasi_validation.py)
 - GSE202011 Visium, 30 samples, 9 patients (6 psoriasis PASI 1.8-32.0, 3 healthy PASI=0)
 - **Significant correlations (P<0.05):**
@@ -197,9 +214,9 @@ Single author: Dr. Jeng-Wei Tjiu, M.D., Dept. of Dermatology, NTUH, Taipei, Taiw
 ## Remaining Items
 
 ### Not Yet Done
-1. **Thompson et al. 2024 validation**: Independent AD eQTL dataset for replication of DECODE-AD cell-type enrichment
-2. **Merge decode-ad -> main**: After review, merge the decode-ad branch into main
-3. **Journal formatting**: Convert markdown manuscripts to journal-specific templates
+1. **Merge thompson-validation -> decode-ad -> main**: After review
+2. **Journal formatting**: Convert markdown manuscripts to journal-specific templates
+3. **Update manuscripts** with Thompson validation results (3rd independent tissue)
 
 ### Previously Investigated but Not Reproducible
 - The "n=23, rho=0.480" SICAI-PASI result was hardcoded from earlier Colab work (`02_sicai_cima.py`); the source cohort/metric is unknown and does not match current GSE202011 data (n=30, rho=-0.148)
@@ -243,11 +260,12 @@ D:\HIRA\
 ├── data\
 │   ├── raw\                           <- CIMA xlsx/csv/zip + AD GWAS tsv.gz
 │   ├── visium\                        <- GSE202011 Visium .h5 files
+│   ├── thompson\                      <- GSE305111 pig skin RData + h5ad (7 files)
 │   └── processed\                     <- intermediate outputs
 ├── tools\
 │   ├── smr\smr-1.3.1-win-x86_64\     <- SMR binary + DLLs
 │   └── plink\                         <- PLINK 1.9 binary
-├── src\                               <- all Python scripts (30 files)
+├── src\                               <- all Python scripts (31 files)
 │   ├── topple.py                      <- Layer 1: TOPPLE
 │   ├── dgsa.py                        <- Layer 2: DGSA
 │   ├── sicai.py                       <- Layer 3: SICAI
@@ -269,6 +287,7 @@ D:\HIRA\
 │   ├── decode_ad_rebound.py           <- DECODE-AD rebound analysis
 │   ├── decode_pasi_validation.py      <- PASI severity validation
 │   ├── smr_ad_pipeline.py             <- Analytical SMR/HEIDI pipeline
+│   ├── thompson_validation.py         <- Thompson rete ridge validation (GSE305111)
 │   ├── utils.py                       <- Shared utility functions
 │   ├── fig_decode_ad.py               <- DECODE-AD main figure
 │   ├── fig_decode_ad_extended.py      <- DECODE-AD extended figure
@@ -329,3 +348,7 @@ D:\HIRA\
 | SMR: IL18R1 in NK | P=4.2e-12 (strongest single gene) | confirmed |
 | SMR: S15 AD HEIDI-pass | 78/93 (83.9%) | confirmed |
 | SMR: cMono_CD14 S15 AD hits | 14 total, 13 HEIDI-pass | confirmed |
+| Thompson: MSX2 stability rank | #1/64 TFs, RI=0.01962 | confirmed |
+| Thompson: cross-species rho | -0.404, P=0.016 (n=35 TFs) | confirmed |
+| Thompson: Krt-Krt coupling | 0.770 vs Krt-NonKrt 0.656, P=7.85e-8 | confirmed |
+| Thompson: Keratin Moran's I | 0.364 vs BMP 0.008 | confirmed |
