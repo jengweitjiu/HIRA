@@ -1,0 +1,11 @@
+gene,n_celltypes,n_regulating_TFs,TFs,TF_stability,n_stabilizer_TFs,n_destabilizer_TFs,n_unmapped_TFs
+RPS28,66,7,KLF2;MAX;MLXIP;NFKB1;PATZ1;TCF7;ZNF101,stabilizer;stabilizer;not_in_TOPPLE;not_in_TOPPLE;stabilizer;stabilizer;stabilizer,5,0,2
+PPDPF,65,11,ATF6B;E2F4;ELF1;FLI1;IKZF1;KLF2;MBD1;MBD2;RELA;RXRB;ZGPAT,not_in_TOPPLE;not_in_TOPPLE;intermediate;not_in_TOPPLE;intermediate;stabilizer;not_in_TOPPLE;stabilizer;not_in_TOPPLE;not_in_TOPPLE;not_in_TOPPLE,2,0,7
+CTSW,56,20,ASCL2;BATF;BHLHE40;BNC2;CREM;EOMES;FOSL2;HES6;IKZF2;IRF8;LYL1;MAFF;MYBL1;PRDM1;RUNX3;RXRA;SPI1;TBX21;TFDP2;ZBTB18,stabilizer;stabilizer;intermediate;intermediate;stabilizer;intermediate;intermediate;intermediate;destabilizer;destabilizer;intermediate;intermediate;intermediate;intermediate;intermediate;intermediate;intermediate;intermediate;intermediate;intermediate,3,2,0
+UQCRQ,53,9,ATF4;ATF5;CEBPB;DRAP1;E2F4;HMG20B;KLF10;MBD2;TFDP1,stabilizer;intermediate;intermediate;not_in_TOPPLE;not_in_TOPPLE;not_in_TOPPLE;intermediate;stabilizer;not_in_TOPPLE,2,0,4
+MARCH2,42,11,ATF4;CUX1;E2F4;IRF7;KLF16;KLF6;MXD4;SP3;STAT2;VEZF1;ZGPAT,stabilizer;intermediate;not_in_TOPPLE;intermediate;not_in_TOPPLE;stabilizer;not_in_TOPPLE;not_in_TOPPLE;intermediate;not_in_TOPPLE;not_in_TOPPLE,2,0,6
+NEAT1,40,0,none,none,0,0,0
+STMN3,39,7,FOXO1;KLF9;LEF1;MYC;TCF7;ZBTB25;ZNF101,intermediate;stabilizer;destabilizer;stabilizer;stabilizer;stabilizer;stabilizer,5,1,0
+MAP3K11,32,20,BACH1;CEBPA;CEBPB;DRAP1;ETS2;ETV6;FOS;IRF7;KLF10;KLF16;LYL1;RARA;RXRA;SPI1;STAT2;STAT5A;STAT6;TFE3;ZBTB7A;ZBTB7B,intermediate;intermediate;intermediate;not_in_TOPPLE;intermediate;intermediate;intermediate;intermediate;intermediate;not_in_TOPPLE;intermediate;intermediate;intermediate;intermediate;intermediate;not_in_TOPPLE;intermediate;not_in_TOPPLE;intermediate;not_in_TOPPLE,0,0,5
+PRORP,32,6,ELF1;ETS1;KLF12;MAX;ZBTB25;ZNF131,intermediate;stabilizer;intermediate;stabilizer;stabilizer;not_in_TOPPLE,3,0,1
+TPD52,32,10,EBF1;IRF2;KLF4;KLF8;PAX5;POU2AF1;PRDM1;RFX5;TCF3;TCF4,destabilizer;not_in_TOPPLE;intermediate;destabilizer;destabilizer;destabilizer;intermediate;intermediate;intermediate;destabilizer,0,5,1
