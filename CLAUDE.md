@@ -3,8 +3,10 @@
 ## What is this project?
 HIRA is a six-layer analytical framework that extracts architectural insights from
 the Chinese Immune Multi-Omics Atlas (CIMA; Yin et al., Science 2026, DOI: 10.1126/science.adt3130).
-Validated in 3 independent tissues: psoriasis skin (GSE202011 Visium), PASI clinical severity,
-and pig skin rete ridges (Thompson et al. Nature 2026, GSE305111).
+Validated in 4 independent tissues: psoriasis skin (GSE202011 Visium), PASI clinical severity,
+pig skin rete ridges (Thompson et al. Nature 2026, GSE305111), and human lung eQTL
+(Natri et al. Nature Genetics 2024, 38 cell types). Fractal stability architecture
+confirmed via lineage-stratified TOPPLE.
 Single author: Dr. Jeng-Wei Tjiu, M.D., Dept. of Dermatology, NTUH, Taipei, Taiwan.
 
 ## Key Constraint
@@ -18,9 +20,12 @@ Single author: Dr. Jeng-Wei Tjiu, M.D., Dept. of Dermatology, NTUH, Taipei, Taiw
 - **decode-ad**: DECODE-AD extension (AD GWAS overlay on CIMA)
   - Latest: `461b4a6` — submission-ready manuscripts + SMR
   - Contains all main branch content plus 18+ DECODE-AD analyses + SMR pipeline
-- **thompson-validation** (active): Thompson et al. (Nature 2026) rete ridge validation
-  - Latest: `8a7f02f` — HIRA framework applied to pig skin (GSE305111)
+- **thompson-validation**: Thompson et al. (Nature 2026) rete ridge validation
+  - Latest: `c2ee345` — HIRA framework applied to pig skin (GSE305111)
   - Branched from decode-ad; contains TOPPLE/SICAI/STRATA on independent tissue+species
+- **multi-tissue-validation** (active): Lineage-stratified TOPPLE + lung eQTL validation
+  - Latest: `4f1137f` — fractal stability + 4th tissue (Natri et al. lung)
+  - Branched from thompson-validation
 - Remote: github.com/jengweitjiu/HIRA
 
 ---
@@ -115,6 +120,32 @@ Single author: Dr. Jeng-Wei Tjiu, M.D., Dept. of Dermatology, NTUH, Taipei, Taiw
 - AD overlay: 2,661 Region-Gene pairs in AD loci (1,510 regions, 277 genes, 196 TFs)
   - Top TFs: ELF1 (144 regions), ETS1 (114), FLI1 (92)
 - Output: `results/ext3_regulatory_coupling.csv`, `results/ext3_ad_peak_gene_overlay.csv`
+
+### Lineage-Stratified TOPPLE — Fractal Stability Test (src/lineage_stratified_topple.py)
+- Split 203 regulons × 61 cell types into 4 lineages: T cell (28), B cell (12), Myeloid (13), NK/ILC (7)
+- **0/20 universal stress-response TFs in ANY lineage's top 20** — stability is entirely lineage-specific
+- Conserved across all 4 lineages: FOXM1, E2F7, MYBL2, ZNF367 (cell cycle regulators)
+- **T cell-specific**: FOXP3 (#2), RORC (#13), EOMES (#19) — lineage-defining TFs
+- **B cell-specific**: PAX5 (#20), PRDM1 (#17), XBP1 (#12), BACH2 (#15)
+- **Myeloid-specific**: TCF4 (#10), RUNX2 (#8), SMAD1 (#13)
+- **NK/ILC-specific**: PBX1 (#1), LEF1 (#14), HES1 (#13)
+- Pairwise rank correlations recapitulate hematopoietic phylogeny:
+  - T cell <-> NK/ILC: rho=0.760 (shared lymphoid origin, highest)
+  - Myeloid <-> T cell: rho=0.237 (most distant, lowest)
+- Global vs lineage: Myeloid most correlated (0.681), NK/ILC least (0.399)
+- Output: `results/lineage_stratified_topple.csv`, `results/lineage_stratified_correlations.csv`
+
+### Lung eQTL Validation (src/lung_validation.py) — 4th Independent Tissue
+- Natri et al. (Nature Genetics 2024, DOI: 10.1038/s41588-024-01702-0)
+- 114 donors (66 IPF + 48 controls), 38 cell types, mashR posterior effect estimates
+- Data: `data/lung/41588_2024_1702_MOESM4_ESM.xlsx`
+- **DGSA**: Mean non-additivity 0.111 (lower than CIMA 0.867 due to mashR shrinkage)
+  - Disease-colocalized genes have HIGHER non-additivity: 0.144 vs 0.110, **P=0.030**
+- **SICAI**: Mean coupling 0.828 (remarkably close to CIMA 0.818)
+  - Within-lineage 0.906 vs between-lineage 0.797, **P=7.19e-65**
+  - Endothelial cells most coupled (0.869), consistent across tissues
+- S8: 146 GWAS colocalizations (IPF, asthma) across 4 lineages
+- Output: `results/lung_dgsa.csv`, `results/lung_sicai_coupling.csv`, `results/lung_validation_summary.csv`
 
 ### Thompson et al. Rete Ridge Validation (src/thompson_validation.py) — 3rd Independent Validation
 - Thompson et al. (Nature 2026, DOI: 10.1038/s41586-025-10055-5), GSE305111
@@ -214,9 +245,9 @@ Single author: Dr. Jeng-Wei Tjiu, M.D., Dept. of Dermatology, NTUH, Taipei, Taiw
 ## Remaining Items
 
 ### Not Yet Done
-1. **Merge thompson-validation -> decode-ad -> main**: After review
+1. **Merge multi-tissue-validation -> thompson-validation -> decode-ad -> main**: After review
 2. **Journal formatting**: Convert markdown manuscripts to journal-specific templates
-3. **Update manuscripts** with Thompson validation results (3rd independent tissue)
+3. **Update manuscripts** with Thompson + lung + fractal stability results (4 validations)
 
 ### Previously Investigated but Not Reproducible
 - The "n=23, rho=0.480" SICAI-PASI result was hardcoded from earlier Colab work (`02_sicai_cima.py`); the source cohort/metric is unknown and does not match current GSE202011 data (n=30, rho=-0.148)
@@ -261,11 +292,12 @@ D:\HIRA\
 │   ├── raw\                           <- CIMA xlsx/csv/zip + AD GWAS tsv.gz
 │   ├── visium\                        <- GSE202011 Visium .h5 files
 │   ├── thompson\                      <- GSE305111 pig skin RData + h5ad (7 files)
+│   ├── lung\                          <- Natri 2024 lung eQTL supplementary tables
 │   └── processed\                     <- intermediate outputs
 ├── tools\
 │   ├── smr\smr-1.3.1-win-x86_64\     <- SMR binary + DLLs
 │   └── plink\                         <- PLINK 1.9 binary
-├── src\                               <- all Python scripts (31 files)
+├── src\                               <- all Python scripts (33 files)
 │   ├── topple.py                      <- Layer 1: TOPPLE
 │   ├── dgsa.py                        <- Layer 2: DGSA
 │   ├── sicai.py                       <- Layer 3: SICAI
@@ -288,6 +320,8 @@ D:\HIRA\
 │   ├── decode_pasi_validation.py      <- PASI severity validation
 │   ├── smr_ad_pipeline.py             <- Analytical SMR/HEIDI pipeline
 │   ├── thompson_validation.py         <- Thompson rete ridge validation (GSE305111)
+│   ├── lineage_stratified_topple.py   <- Fractal stability: TOPPLE within each lineage
+│   ├── lung_validation.py             <- Lung eQTL validation (Natri 2024, 38 cell types)
 │   ├── utils.py                       <- Shared utility functions
 │   ├── fig_decode_ad.py               <- DECODE-AD main figure
 │   ├── fig_decode_ad_extended.py      <- DECODE-AD extended figure
@@ -352,3 +386,9 @@ D:\HIRA\
 | Thompson: cross-species rho | -0.404, P=0.016 (n=35 TFs) | confirmed |
 | Thompson: Krt-Krt coupling | 0.770 vs Krt-NonKrt 0.656, P=7.85e-8 | confirmed |
 | Thompson: Keratin Moran's I | 0.364 vs BMP 0.008 | confirmed |
+| Lineage TOPPLE: universal in top 20 | 0/20 in all 4 lineages | confirmed |
+| Lineage TOPPLE: T-NK correlation | rho=0.760, P=1.3e-34 | confirmed |
+| Lineage TOPPLE: Myeloid-T correlation | rho=0.237, P=1.6e-3 (lowest) | confirmed |
+| Lung SICAI: mean coupling | 0.828 (vs CIMA 0.818) | confirmed |
+| Lung SICAI: within vs between lineage | 0.906 vs 0.797, P=7.19e-65 | confirmed |
+| Lung DGSA: disease coloc non-additivity | 0.144 vs 0.110, P=0.030 | confirmed |
