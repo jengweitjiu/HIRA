@@ -19,8 +19,9 @@ __MACOSX/
 # Archives
 *.zip
 
-# Claude Code local state
-.claude/
+# Claude Code local state (keep commands/)
+.claude/*
+!.claude/commands/
 
 # Large files (>50MB)
 *.h5

@@ -1,0 +1,11 @@
+metric,value
+observed_coupling,0.5787400093171816
+global_coupling,0.6573795953339986
+disruption,0.07863958601681698
+null_mean,0.6193342883030356
+null_std,0.13932610950108523
+p_one_tailed,0.3809
+p_two_tailed,0.7618
+z_score,-0.2913616057407947
+n_permutations,10000.0
+n_ad_genes,195.0
